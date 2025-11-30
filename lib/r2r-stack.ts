@@ -94,6 +94,19 @@ export class R2RStack extends cdk.Stack {
       ],
     });
 
+    // Update User Pool Client with CloudFront URLs
+    const cloudFrontUrl = `https://${distribution.distributionDomainName}`;
+    const userPoolClientCfn = userPoolClient.node
+      .defaultChild as cognito.CfnUserPoolClient;
+    userPoolClientCfn.callbackUrLs = [
+      'http://localhost:5173/callback',
+      `${cloudFrontUrl}/callback`,
+    ];
+    userPoolClientCfn.logoutUrLs = [
+      'http://localhost:5173/logout',
+      `${cloudFrontUrl}/logout`,
+    ];
+
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
       sources: [s3deploy.Source.asset('./frontend/dist')],
@@ -113,8 +126,13 @@ export class R2RStack extends cdk.Stack {
       description: 'Cognito User Pool Client ID',
     });
 
+    new cdk.CfnOutput(this, 'CognitoDomain', {
+      value: `${userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com`,
+      description: 'Cognito Domain',
+    });
+
     new cdk.CfnOutput(this, 'HostedUIUrl', {
-      value: `https://${userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com/login?client_id=${userPoolClient.userPoolClientId}&response_type=code&redirect_uri=http://localhost:3000/callback`,
+      value: `https://${userPoolDomain.domainName}.auth.${cdk.Aws.REGION}.amazoncognito.com/login?client_id=${userPoolClient.userPoolClientId}&response_type=code&redirect_uri=${cloudFrontUrl}/callback`,
       description: 'Cognito Hosted UI Login URL',
     });
 
