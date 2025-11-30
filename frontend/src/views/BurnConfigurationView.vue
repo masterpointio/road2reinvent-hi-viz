@@ -142,12 +142,14 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToasts } from '../composables/useToasts';
+import { useBurnPlan } from '../composables/useBurnPlan';
 import type { BurnPlanResponse, ServiceDeployment } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
 const router = useRouter();
-const { success } = useToasts();
+const { success, error: showError } = useToasts();
+const { createBurnPlan, isLoading: isBurnPlanLoading } = useBurnPlan();
 
 interface BurnConfig {
   totalAmount: number | null;
@@ -245,13 +247,25 @@ const resetForm = () => {
   };
 };
 
-const startBurn = () => {
-  if (!isFormValid.value) return;
+const startBurn = async () => {
+  if (!isFormValid.value || !config.value.totalAmount) return;
 
   success('Generating your burn plan...');
 
-  const mockBurnPlan = generateMockBurnPlan(config.value);
-  sessionStorage.setItem('currentBurnPlan', JSON.stringify(mockBurnPlan));
+  const burnPlan = await createBurnPlan({
+    totalAmount: config.value.totalAmount,
+    timeline: config.value.timeline || '30d',
+    architecture: config.value.architecture,
+    burningStyle: config.value.burningStyle,
+    efficiencyLevel: config.value.efficiencyLevel,
+  });
+
+  if (!burnPlan) {
+    showError('Failed to generate burn plan. Please try again.');
+    return;
+  }
+
+  sessionStorage.setItem('currentBurnPlan', JSON.stringify(burnPlan));
 
   success('Burn plan generated! Redirecting...');
 
