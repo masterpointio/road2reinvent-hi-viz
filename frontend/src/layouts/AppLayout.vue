@@ -10,10 +10,10 @@
           <router-link to="/app/burn-config" class="app-layout__nav-link">
             ⚙️ Configure Burn
           </router-link>
-          <router-link to="/components" class="app-layout__nav-link">
+          <router-link v-if="isLocalhost" to="/components" class="app-layout__nav-link">
             🎨 Components
           </router-link>
-          <router-link to="/charts" class="app-layout__nav-link">
+          <router-link v-if="isLocalhost" to="/charts" class="app-layout__nav-link">
             📊 Charts
           </router-link>
         </nav>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTheme } from '../composables/useTheme';
 import { useAuth } from '../composables/useAuth';
@@ -70,6 +70,10 @@ const { user, logout } = useAuth();
 
 const showUserMenu = ref(false);
 const showThemeMenu = ref(false);
+
+const isLocalhost = computed(() => {
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+});
 
 const themes = [
   { value: 'default', label: 'Hi-Viz' },
