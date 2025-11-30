@@ -128,9 +128,9 @@
         </div>
 
         <template #footer>
-          <UiButton variant="secondary" @click="resetForm">Reset</UiButton>
-          <UiButton variant="primary" :disabled="!isFormValid" @click="startBurn">
-            🔥 Start Burning
+          <UiButton variant="secondary" @click="resetForm" :disabled="isBurnPlanLoading">Reset</UiButton>
+          <UiButton variant="primary" :disabled="!isFormValid || isBurnPlanLoading" @click="startBurn">
+            {{ isBurnPlanLoading ? '🔥 Generating...' : '🔥 Start Burning' }}
           </UiButton>
         </template>
       </UiCard>
@@ -248,17 +248,27 @@ const resetForm = () => {
 };
 
 const startBurn = async () => {
-  if (!isFormValid.value || !config.value.totalAmount) return;
+  console.log('startBurn called');
+  console.log('isFormValid:', isFormValid.value);
+  console.log('config:', config.value);
+  
+  if (!isFormValid.value || !config.value.totalAmount || !config.value.timeline) {
+    console.log('Form validation failed');
+    return;
+  }
 
   success('Generating your burn plan...');
 
+  console.log('Calling createBurnPlan...');
   const burnPlan = await createBurnPlan({
     totalAmount: config.value.totalAmount,
-    timeline: config.value.timeline ? `${config.value.timeline}d` : '30d',
-    architecture: config.value.architecture,
-    burningStyle: config.value.burningStyle,
+    timeline: config.value.timeline,
+    architecture: config.value.architecture as 'serverless' | 'kubernetes' | 'traditional' | 'mixed',
+    burningStyle: config.value.burningStyle as 'horizontal' | 'vertical',
     efficiencyLevel: config.value.efficiencyLevel,
   });
+
+  console.log('createBurnPlan returned:', burnPlan);
 
   if (!burnPlan) {
     showError('Failed to generate burn plan. Please try again.');

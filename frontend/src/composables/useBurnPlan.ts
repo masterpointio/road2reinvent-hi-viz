@@ -3,9 +3,9 @@ import { apiClient } from '../lib/apiClient';
 
 export interface BurnConfig {
   totalAmount: number;
-  timeline: string;
-  architecture: string;
-  burningStyle: string;
+  timeline: number;
+  architecture: 'serverless' | 'kubernetes' | 'traditional' | 'mixed';
+  burningStyle: 'horizontal' | 'vertical';
   efficiencyLevel: number;
 }
 
@@ -33,7 +33,7 @@ export interface BurnPlan {
 export interface BurnPlanResponse {
   session_id: string;
   burn_plan: {
-    total_amount: number;
+    total_amount: string;
     timeline_days: number;
     efficiency_level: string;
     services_deployed: Array<{
@@ -42,11 +42,11 @@ export interface BurnPlanResponse {
       quantity: number;
       start_day: number;
       end_day: number;
-      duration_used: number;
+      duration_used: string;
       unit_cost: number;
       total_cost: number;
-      usage_pattern: string;
-      waste_factor: number;
+      usage_pattern?: string;
+      waste_factor?: string;
     }>;
     total_calculated_cost: number;
     deployment_scenario: string;
@@ -64,22 +64,44 @@ export const useBurnPlan = () => {
     error.value = null;
 
     try {
-      const response = await apiClient.post<BurnPlanResponse>('/burn-plan', {
+      // Map efficiency level to stupidity label
+      const stupidityMap: Record<number, string> = {
+        1: 'Mildly dumb',
+        2: 'Mildly dumb',
+        3: 'Moderately stupid',
+        4: 'Moderately stupid',
+        5: 'Moderately stupid',
+        6: 'Very stupid',
+        7: 'Very stupid',
+        8: 'Very stupid',
+        9: 'Brain damage',
+        10: 'Brain damage',
+      };
+
+      console.log('Creating burn plan with config:', config);
+      
+      const requestPayload = {
         config: {
-          total_amount: config.totalAmount,
+          amount: `$${config.totalAmount}`,
           timeline: config.timeline,
           architecture: config.architecture,
           burning_style: config.burningStyle,
-          efficiency_level: config.efficiencyLevel,
+          stupidity: stupidityMap[config.efficiencyLevel] || 'Moderately stupid',
         },
-      });
+      };
+      
+      console.log('Request payload:', requestPayload);
+      
+      const response = await apiClient.post<BurnPlanResponse>('/api/burn-plan', requestPayload);
+      
+      console.log('Response received:', response);
 
       // Transform backend response to frontend format
       const burnPlan: BurnPlan = {
         sessionId: response.session_id,
-        totalAmount: response.burn_plan.total_amount,
+        totalAmount: parseFloat(response.burn_plan.total_amount.replace(/[$,]/g, '')),
         duration: 60, // Default 60 seconds for visualization
-        timeline: config.timeline,
+        timeline: `${config.timeline}d`,
         architecture: config.architecture,
         burningStyle: config.burningStyle,
         efficiencyLevel: config.efficiencyLevel,
@@ -91,14 +113,25 @@ export const useBurnPlan = () => {
           cost: service.total_cost,
           startTime: (index * 5) % 60, // Stagger start times
           endTime: 60,
-          description: service.usage_pattern,
+          description: service.usage_pattern || service.waste_factor || '',
           costPerSecond: service.total_cost / 60,
         })),
       };
 
       return burnPlan;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to create burn plan';
+    } catch (err: unknown) {
+      // Provide more helpful error messages
+      if (err.status === 401 || err.status === 403) {
+        error.value = 'Authentication failed. Please log in again.';
+      } else if (err.status === 504) {
+        error.value = 'Request timed out. The agent is taking too long to respond.';
+      } else if (err.status === 429) {
+        error.value = 'Rate limit exceeded. Please try again later.';
+      } else if (err.status === 502 || err.status === 503) {
+        error.value = 'Service temporarily unavailable. Please try again.';
+      } else {
+        error.value = err.message || 'Failed to create burn plan';
+      }
       console.error('Burn plan creation error:', err);
       return null;
     } finally {
