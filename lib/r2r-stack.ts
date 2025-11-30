@@ -9,6 +9,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as path from 'path';
 
 export class R2RStack extends cdk.Stack {
@@ -82,6 +83,13 @@ export class R2RStack extends cdk.Stack {
       zoneName: 'wehavetoomuch.com',
     });
 
+    // Create SSL Certificate for CloudFront (must be in us-east-1)
+    const certificate = new acm.Certificate(this, 'R2RCertificate', {
+      domainName: 'wehavetoomuch.com',
+      subjectAlternativeNames: ['*.wehavetoomuch.com'],
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
+
     // Create CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'R2RDistribution', {
       defaultBehavior: {
@@ -89,6 +97,8 @@ export class R2RStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       },
+      domainNames: ['wehavetoomuch.com'],
+      certificate: certificate,
       defaultRootObject: 'index.html',
       errorResponses: [
         {
@@ -114,16 +124,19 @@ export class R2RStack extends cdk.Stack {
     });
 
     // Update User Pool Client with CloudFront URLs
+    const customDomainUrl = 'https://wehavetoomuch.com';
     const cloudFrontUrl = `https://${distribution.distributionDomainName}`;
     const userPoolClientCfn = userPoolClient.node
       .defaultChild as cognito.CfnUserPoolClient;
     userPoolClientCfn.callbackUrLs = [
       'http://localhost:5173/callback',
       `${cloudFrontUrl}/callback`,
+      `${customDomainUrl}/callback`,
     ];
     userPoolClientCfn.logoutUrLs = [
       'http://localhost:5173/logout',
       `${cloudFrontUrl}/logout`,
+      `${customDomainUrl}/logout`,
     ];
 
     // Create Lambda function
@@ -213,6 +226,16 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'NameServers', {
       value: cdk.Fn.join(', ', hostedZone.hostedZoneNameServers || []),
       description: 'Route53 Name Servers',
+    });
+
+    new cdk.CfnOutput(this, 'CustomDomainUrl', {
+      value: 'https://wehavetoomuch.com',
+      description: 'Custom Domain URL',
+    });
+
+    new cdk.CfnOutput(this, 'CertificateArn', {
+      value: certificate.certificateArn,
+      description: 'ACM Certificate ARN',
     });
   }
 }
