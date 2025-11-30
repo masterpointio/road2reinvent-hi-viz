@@ -114,7 +114,7 @@
             </div>
             <div class="burn-config__summary-item">
               <span class="burn-config__summary-label">Timeline</span>
-              <span class="burn-config__summary-value">{{ config.timeline || 'Not set' }}</span>
+              <span class="burn-config__summary-value">{{ config.timeline ? `${config.timeline} days` : 'Not set' }}</span>
             </div>
             <div class="burn-config__summary-item">
               <span class="burn-config__summary-label">Architecture</span>
@@ -142,6 +142,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToasts } from '../composables/useToasts';
+import type { BurnPlanResponse, ServiceDeployment } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
@@ -150,7 +151,7 @@ const { success } = useToasts();
 
 interface BurnConfig {
   totalAmount: number | null;
-  timeline: string;
+  timeline: number | null;
   architecture: string;
   burningStyle: string;
   efficiencyLevel: number;
@@ -158,18 +159,19 @@ interface BurnConfig {
 
 const config = ref<BurnConfig>({
   totalAmount: null,
-  timeline: '',
+  timeline: null,
   architecture: '',
   burningStyle: '',
   efficiencyLevel: 5,
 });
 
 const timelineOptions = [
-  { value: '1 hour', label: '1 Hour', icon: '⚡' },
-  { value: '1 day', label: '1 Day', icon: '☀️' },
-  { value: '1 week', label: '1 Week', icon: '📅' },
-  { value: '2 weeks', label: '2 Weeks', icon: '📆' },
-  { value: '1 month', label: '1 Month', icon: '🗓️' },
+  { value: 7, label: '7 Days', icon: '⚡' },
+  { value: 14, label: '14 Days', icon: '📅' },
+  { value: 30, label: '30 Days', icon: '📆' },
+  { value: 45, label: '45 Days', icon: '🗓️' },
+  { value: 60, label: '60 Days', icon: '📊' },
+  { value: 90, label: '90 Days', icon: '📈' },
 ];
 
 const architectureOptions = [
@@ -216,11 +218,11 @@ const burningStyleOptions = [
 
 const efficiencyLevelLabel = computed(() => {
   const level = config.value.efficiencyLevel;
-  if (level <= 2) return 'Mildly Dumb';
-  if (level <= 4) return 'Pretty Dumb';
-  if (level <= 6) return 'Very Stupid';
-  if (level <= 8) return 'Extremely Stupid';
-  return 'Brain Damage';
+  if (level <= 2) return 'Mildly dumb';
+  if (level <= 4) return 'Moderately stupid';
+  if (level <= 6) return 'Very stupid';
+  if (level <= 8) return 'Extremely stupid';
+  return 'Brain damage';
 });
 
 const isFormValid = computed(() => {
@@ -236,219 +238,279 @@ const isFormValid = computed(() => {
 const resetForm = () => {
   config.value = {
     totalAmount: null,
-    timeline: '',
+    timeline: null,
     architecture: '',
     burningStyle: '',
     efficiencyLevel: 5,
   };
 };
 
-const startBurn = async () => {
+const startBurn = () => {
   if (!isFormValid.value) return;
 
-  // Mock API call
   success('Generating your burn plan...');
 
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Mock burn plan data
   const mockBurnPlan = generateMockBurnPlan(config.value);
-
-  // Store in session storage for the visualization page
   sessionStorage.setItem('currentBurnPlan', JSON.stringify(mockBurnPlan));
 
-  success('Burn plan generated! Starting visualization...');
+  success('Burn plan generated! Redirecting...');
 
-  // Navigate to visualization (we'll create this next)
   setTimeout(() => {
-    router.push('/app/burn-visualization');
+    router.push('/app/burn-results');
   }, 500);
 };
 
-function generateMockBurnPlan(cfg: BurnConfig) {
-  const resources = [];
+function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
   const amount = cfg.totalAmount || 0;
+  const timeline = cfg.timeline || 30;
+  const services: ServiceDeployment[] = [];
 
-  // Generate resources based on architecture
   if (cfg.architecture === 'serverless') {
-    resources.push(
+    services.push(
       {
-        service: 'Lambda Invocations',
-        category: 'Compute',
-        cost: amount * 0.3,
-        startTime: 0,
-        endTime: 60,
-        description: 'Millions of function calls for a hello world API',
+        service_name: 'Lambda',
+        instance_type: '1GB Memory',
+        quantity: 1000000,
+        unit_cost: 0.0000166667,
+        total_cost: amount * 0.3,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Millions of invocations for hello world',
       },
       {
-        service: 'API Gateway',
-        category: 'Networking',
-        cost: amount * 0.25,
-        startTime: 5,
-        endTime: 60,
-        description: 'REST API that nobody calls',
+        service_name: 'API Gateway',
+        instance_type: 'REST API',
+        quantity: 1,
+        unit_cost: amount * 0.25,
+        total_cost: amount * 0.25,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'API that nobody calls',
       },
       {
-        service: 'DynamoDB',
-        category: 'Database',
-        cost: amount * 0.25,
-        startTime: 0,
-        endTime: 60,
-        description: 'NoSQL database for 3 records',
+        service_name: 'DynamoDB',
+        instance_type: 'On-Demand',
+        quantity: 1,
+        unit_cost: amount * 0.25,
+        total_cost: amount * 0.25,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Database for 3 records',
       },
       {
-        service: 'S3 Storage',
-        category: 'Storage',
-        cost: amount * 0.2,
-        startTime: 10,
-        endTime: 60,
-        description: 'Storing deployment artifacts forever',
+        service_name: 'S3',
+        instance_type: 'Standard',
+        quantity: 1000,
+        unit_cost: 0.023,
+        total_cost: amount * 0.2,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Storing artifacts forever',
       }
     );
   } else if (cfg.architecture === 'kubernetes') {
-    resources.push(
+    services.push(
       {
-        service: 'EKS Cluster',
-        category: 'Compute',
-        cost: amount * 0.35,
-        startTime: 0,
-        endTime: 60,
-        description: 'Kubernetes cluster for a single pod',
+        service_name: 'EKS',
+        instance_type: 'Cluster',
+        quantity: 1,
+        unit_cost: 0.1,
+        total_cost: amount * 0.15,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Cluster for single pod',
       },
       {
-        service: 'EC2 Worker Nodes',
-        category: 'Compute',
-        cost: amount * 0.3,
-        startTime: 5,
-        endTime: 60,
-        description: 'm5.2xlarge nodes running at 5% CPU',
+        service_name: 'EC2',
+        instance_type: 'm5.2xlarge',
+        quantity: 10,
+        unit_cost: 0.384,
+        total_cost: amount * 0.4,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Nodes at 5% CPU',
       },
       {
-        service: 'Load Balancer',
-        category: 'Networking',
-        cost: amount * 0.2,
-        startTime: 0,
-        endTime: 60,
-        description: 'Load balancing zero traffic',
+        service_name: 'ALB',
+        instance_type: 'Load Balancer',
+        quantity: 2,
+        unit_cost: 0.0225,
+        total_cost: amount * 0.2,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Load balancing zero traffic',
       },
       {
-        service: 'EBS Volumes',
-        category: 'Storage',
-        cost: amount * 0.15,
-        startTime: 10,
-        endTime: 60,
-        description: 'Provisioned IOPS for logs',
+        service_name: 'EBS',
+        instance_type: 'io2',
+        quantity: 500,
+        unit_cost: 0.125,
+        total_cost: amount * 0.25,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Provisioned IOPS for logs',
       }
     );
   } else if (cfg.architecture === 'traditional') {
-    resources.push(
+    services.push(
       {
-        service: 'EC2 m5.24xlarge',
-        category: 'Compute',
-        cost: amount * 0.4,
-        startTime: 0,
-        endTime: 60,
-        description: '96 vCPUs for your WordPress blog',
+        service_name: 'EC2',
+        instance_type: 'm5.24xlarge',
+        quantity: 3,
+        unit_cost: 4.608,
+        total_cost: amount * 0.4,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: '96 vCPUs for WordPress',
       },
       {
-        service: 'RDS Aurora',
-        category: 'Database',
-        cost: amount * 0.3,
-        startTime: 5,
-        endTime: 60,
-        description: 'Multi-AZ database for a todo list',
+        service_name: 'RDS',
+        instance_type: 'db.r6g.8xlarge',
+        quantity: 1,
+        unit_cost: 2.88,
+        total_cost: amount * 0.3,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Multi-AZ for todo list',
       },
       {
-        service: 'NAT Gateway',
-        category: 'Networking',
-        cost: amount * 0.2,
-        startTime: 0,
-        endTime: 60,
-        description: 'Routing packets to nowhere',
+        service_name: 'NAT Gateway',
+        instance_type: 'NAT Gateway',
+        quantity: 3,
+        unit_cost: 0.045,
+        total_cost: amount * 0.2,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Routing to nowhere',
       },
       {
-        service: 'EBS gp3',
-        category: 'Storage',
-        cost: amount * 0.1,
-        startTime: 10,
-        endTime: 60,
-        description: 'Fast storage for slow queries',
+        service_name: 'EBS',
+        instance_type: 'gp3',
+        quantity: 2000,
+        unit_cost: 0.08,
+        total_cost: amount * 0.1,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Fast storage for slow queries',
       }
     );
   } else {
-    // Mixed
-    resources.push(
+    services.push(
       {
-        service: 'EC2 Instances',
-        category: 'Compute',
-        cost: amount * 0.25,
-        startTime: 0,
-        endTime: 60,
-        description: 'A fleet of underutilized servers',
+        service_name: 'EC2',
+        instance_type: 'm5.xlarge',
+        quantity: 20,
+        unit_cost: 0.192,
+        total_cost: amount * 0.25,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Underutilized fleet',
       },
       {
-        service: 'Lambda Functions',
-        category: 'Compute',
-        cost: amount * 0.2,
-        startTime: 5,
-        endTime: 60,
-        description: 'Serverless chaos',
+        service_name: 'Lambda',
+        instance_type: '512MB',
+        quantity: 500000,
+        unit_cost: 0.0000083333,
+        total_cost: amount * 0.2,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Serverless chaos',
       },
       {
-        service: 'RDS + DynamoDB',
-        category: 'Database',
-        cost: amount * 0.25,
-        startTime: 0,
-        endTime: 60,
-        description: 'Two databases because why not',
+        service_name: 'RDS',
+        instance_type: 'db.t3.large',
+        quantity: 2,
+        unit_cost: 0.136,
+        total_cost: amount * 0.15,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Two databases',
       },
       {
-        service: 'S3 + EBS',
-        category: 'Storage',
-        cost: amount * 0.15,
-        startTime: 10,
-        endTime: 60,
-        description: 'Redundant storage redundancy',
+        service_name: 'DynamoDB',
+        instance_type: 'On-Demand',
+        quantity: 1,
+        unit_cost: amount * 0.1,
+        total_cost: amount * 0.1,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Redundant with RDS',
       },
       {
-        service: 'NAT + ALB',
-        category: 'Networking',
-        cost: amount * 0.15,
-        startTime: 0,
-        endTime: 60,
-        description: 'Network complexity for fun',
+        service_name: 'S3',
+        instance_type: 'Standard',
+        quantity: 500,
+        unit_cost: 0.023,
+        total_cost: amount * 0.15,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Redundant storage',
+      },
+      {
+        service_name: 'NAT Gateway',
+        instance_type: 'NAT Gateway',
+        quantity: 2,
+        unit_cost: 0.045,
+        total_cost: amount * 0.15,
+        start_day: 0,
+        end_day: timeline,
+        duration_used: 'entire timeline',
+        usage_pattern: 'Running 24/7',
+        waste_factor: 'Network complexity',
       }
     );
   }
 
-  // Adjust based on burning style
-  if (cfg.burningStyle === 'horizontal') {
-    // Split resources into more smaller ones
-    const newResources: typeof resources = [];
-    resources.forEach((r) => {
-      const count = Math.floor(Math.random() * 3) + 2;
-      for (let i = 0; i < count; i++) {
-        newResources.push({
-          ...r,
-          service: `${r.service} #${i + 1}`,
-          cost: r.cost / count,
-        });
-      }
-    });
-    resources.length = 0;
-    resources.push(...newResources);
-  }
+  const totalCost = services.reduce((sum, s) => sum + s.total_cost, 0);
 
   return {
-    sessionId: `burn-${Date.now()}`,
-    totalAmount: amount,
-    duration: 60,
-    timeline: cfg.timeline,
-    architecture: cfg.architecture,
-    burningStyle: cfg.burningStyle,
-    efficiencyLevel: cfg.efficiencyLevel,
-    resources,
+    total_amount: `$${amount}`,
+    timeline_days: timeline,
+    efficiency_level: efficiencyLevelLabel.value,
+    services_deployed: services,
+    total_calculated_cost: totalCost,
+    deployment_scenario: `${cfg.architecture} architecture with ${cfg.burningStyle} scaling over ${timeline} days`,
+    key_mistakes: services.map((s) => s.waste_factor),
+    recommendations: [
+      'Right-size instances based on workload',
+      'Use auto-scaling to match demand',
+      'Consider reserved instances',
+      'Implement cost monitoring',
+    ],
   };
 }
 </script>
