@@ -5,11 +5,12 @@
     "r2r": "bin/r2r.js"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "build:frontend": "cd frontend && npm i && npm run build",
+    "predeploy": "npm run build:frontend",
+    "deploy": "cdk deploy"
   },
+
   "devDependencies": {
     "@types/aws-lambda": "^8.10.159",
     "@types/jest": "^29.5.14",
