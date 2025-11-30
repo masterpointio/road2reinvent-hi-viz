@@ -112,8 +112,8 @@ export class R2RStack extends cdk.Stack {
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: ['http://localhost:3000/callback'],
-        logoutUrls: ['http://localhost:3000/logout'],
+        callbackUrls: ['http://localhost:5173/login-callback'],
+        logoutUrls: ['http://localhost:5173/login'],
       },
     });
 
@@ -182,14 +182,16 @@ export class R2RStack extends cdk.Stack {
     const userPoolClientCfn = userPoolClient.node
       .defaultChild as cognito.CfnUserPoolClient;
     userPoolClientCfn.callbackUrLs = [
-      'http://localhost:5173/callback',
-      `${cloudFrontUrl}/callback`,
-      `${customDomainUrl}/callback`,
+      'http://localhost:5173/login-callback',
+      'http://localhost:3000/login-callback',
+      `${cloudFrontUrl}/login-callback`,
+      `${customDomainUrl}/login-callback`,
     ];
     userPoolClientCfn.logoutUrLs = [
-      'http://localhost:5173/logout',
-      `${cloudFrontUrl}/logout`,
-      `${customDomainUrl}/logout`,
+      'http://localhost:5173/login',
+      'http://localhost:3000/login',
+      `${cloudFrontUrl}/login`,
+      `${customDomainUrl}/login`,
     ];
 
     // Create Lambda function
