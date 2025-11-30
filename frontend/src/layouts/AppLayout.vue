@@ -2,7 +2,7 @@
   <div class="app-layout">
     <nav class="app-layout__nav">
       <div class="app-layout__nav-content">
-        <h1 class="app-layout__title">R2R App</h1>
+        <BillBurnerLogo size="compact" />
         <nav class="app-layout__nav-links">
           <router-link to="/app/dashboard" class="app-layout__nav-link">
             🔥 Dashboard
@@ -62,6 +62,7 @@ import { useRouter } from 'vue-router';
 import { useTheme } from '../composables/useTheme';
 import { useAuth } from '../composables/useAuth';
 import UiToastContainer from '../components/UiToastContainer.vue';
+import BillBurnerLogo from '../components/BillBurnerLogo.vue';
 
 const router = useRouter();
 const { currentTheme, setTheme } = useTheme();
