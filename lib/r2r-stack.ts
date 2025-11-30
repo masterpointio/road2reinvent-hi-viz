@@ -201,6 +201,31 @@ export class R2RStack extends cdk.Stack {
       },
     });
 
+    // Create Burn Plan Lambda function
+    const burnPlanFunction = new lambda.NodejsFunction(this, 'BurnPlanFunction', {
+      entry: path.join(__dirname, 'lambda', 'burn-plan.ts'),
+      runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
+      timeout: cdk.Duration.seconds(29),
+      memorySize: 512,
+      environment: {
+        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+      },
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+      },
+    });
+
+    // Grant Lambda permission to invoke AgentCore agent runtime
+    burnPlanFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:InvokeAgentRuntime',
+        ],
+        resources: ['*'],
+      })
+    );
+
     // Create FastAPI Lambda function
     const fastapiFunction = new pythonLambda.Function(this, 'FastAPIFunction', {
       runtime: pythonLambda.Runtime.PYTHON_3_13,
@@ -265,6 +290,33 @@ export class R2RStack extends cdk.Stack {
     const proxyResource = apiResource.addResource('{proxy+}');
     proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(fastapiFunction));
 
+    // Add Burn Plan endpoint (not under /api)
+    const burnPlanResource = api.root.addResource('burn-plan');
+    burnPlanResource.addMethod('POST', new apigateway.LambdaIntegration(burnPlanFunction));
+    burnPlanResource.addMethod('OPTIONS', new apigateway.MockIntegration({
+      integrationResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+          'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'",
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+        },
+      }],
+      passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
+      requestTemplates: {
+        'application/json': '{"statusCode": 200}',
+      },
+    }), {
+      methodResponses: [{
+        statusCode: '200',
+        responseParameters: {
+          'method.response.header.Access-Control-Allow-Headers': true,
+          'method.response.header.Access-Control-Allow-Methods': true,
+          'method.response.header.Access-Control-Allow-Origin': true,
+        },
+      }],
+    });
+
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
       sources: [s3deploy.Source.asset('./frontend/dist')],
@@ -313,6 +365,11 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'FastAPIUrl', {
       value: `${api.url}api/health`,
       description: 'FastAPI Health Check URL',
+    });
+
+    new cdk.CfnOutput(this, 'BurnPlanUrl', {
+      value: `${api.url}burn-plan`,
+      description: 'Burn Plan Endpoint URL',
     });
 
     // Note: Hosted Zone ID and Name Servers are not available when using fromLookup
