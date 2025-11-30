@@ -1,3 +1,6 @@
+import './styles/theme.css'
+import './styles/color-contrast.css'
+import './styles/globals.css'
 import './assets/main.css'
 
 import { createApp } from 'vue'

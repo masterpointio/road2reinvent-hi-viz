@@ -1,33 +1,101 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import type { RouteRecordRaw } from 'vue-router'
+import AppLayout from '../layouts/AppLayout.vue'
+import AuthLayout from '../layouts/AuthLayout.vue'
+import { useAuth } from '../composables/useAuth'
+import { config } from '../config'
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/login',
+    component: AuthLayout,
+    children: [
+      {
+        path: '',
+        name: 'login',
+        component: () => import('../views/LoginView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/login-callback',
+    component: AuthLayout,
+    children: [
+      {
+        path: '',
+        name: 'login-callback',
+        component: () => import('../views/LoginCallbackView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/app',
+    component: AppLayout,
+    meta: { requiresAuth: false },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'dashboard',
+        component: () => import('../views/DashboardView.vue'),
+      },
+      {
+        path: 'items',
+        name: 'items',
+        component: () => import('../views/ItemsListView.vue'),
+      },
+      {
+        path: 'burn-config',
+        name: 'burn-config',
+        component: () => import('../views/BurnConfigurationView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/components',
+    component: AppLayout,
+    children: [
+      {
+        path: '',
+        name: 'components',
+        component: () => import('../views/ComponentsShowcaseView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/charts',
+    component: AppLayout,
+    children: [
+      {
+        path: '',
+        name: 'charts',
+        component: () => import('../views/ChartsShowcaseView.vue'),
+      },
+    ],
+  },
+  {
+    path: '/',
+    redirect: '/app/dashboard',
+  },
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('../views/LoginView.vue'),
-    },
-    {
-      path: '/callback',
-      name: 'callback',
-      component: () => import('../views/CallbackView.vue'),
-    },
-  ],
+  routes,
+})
+
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const { isAuthenticated } = useAuth()
+
+  if (requiresAuth && !isAuthenticated.value) {
+    if (config.cognitoLoginUrl) {
+      window.location.href = config.cognitoLoginUrl
+    } else {
+      next('/login')
+    }
+  } else {
+    next()
+  }
 })
 
 export default router
