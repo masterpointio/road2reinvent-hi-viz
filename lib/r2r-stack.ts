@@ -220,7 +220,24 @@ export class R2RStack extends cdk.Stack {
       ),
       timeout: cdk.Duration.seconds(29),
       memorySize: 512,
+      environment: {
+        AGENTCORE_AGENT_RUNTIME_ARN: process.env.AGENTCORE_AGENT_RUNTIME_ARN || '',
+        AWS_REGION: this.region,
+      },
     });
+
+    // Grant Lambda permission to invoke AgentCore agent runtime
+    if (process.env.AGENTCORE_AGENT_RUNTIME_ARN) {
+      fastapiFunction.addToRolePolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'bedrock-agentcore:InvokeAgentRuntime',
+          ],
+          resources: [process.env.AGENTCORE_AGENT_RUNTIME_ARN],
+        })
+      );
+    }
 
     // // Create API Gateway with Cognito Authorizer
     const api = new apigateway.RestApi(this, 'R2RApi', {
