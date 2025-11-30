@@ -17,6 +17,7 @@ class ApiClient {
 
   constructor() {
     this.baseUrl = config.apiBaseUrl;
+    console.log('ApiClient initialized with baseUrl:', this.baseUrl);
   }
 
   private getHeaders(): HeadersInit {
@@ -72,6 +73,13 @@ class ApiClient {
     const url = `${this.baseUrl}${path}`;
     const headers = this.getHeaders();
 
+    console.log('API Request:', {
+      url,
+      method: options.method || 'GET',
+      headers,
+      body: options.body,
+    });
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -81,8 +89,14 @@ class ApiClient {
         },
       });
 
+      console.log('API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+      });
+
       return await this.handleResponse<T>(response);
     } catch (error) {
+      console.error('API Request failed:', error);
       if (error instanceof Error && 'status' in error) {
         throw error;
       }
