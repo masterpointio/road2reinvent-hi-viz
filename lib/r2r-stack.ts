@@ -246,6 +246,11 @@ export class R2RStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // Add FastAPI integration
+    const apiResource = api.root.addResource('api');
+    const proxyResource = apiResource.addResource('{proxy+}');
+    proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(fastapiFunction));
+
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
       sources: [s3deploy.Source.asset('./frontend/dist')],

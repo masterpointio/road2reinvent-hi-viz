@@ -15,7 +15,7 @@
   - Configure Code.fromAsset with bundling for pip install
   - _Requirements: 1.2, 1.5_
 
-- [ ] 3. Add API Gateway integration
+- [x] 3. Add API Gateway integration
 
   - Create `/api` resource on existing API Gateway
   - Create `{proxy+}` resource under `/api`
