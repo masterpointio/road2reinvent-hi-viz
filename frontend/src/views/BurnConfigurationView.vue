@@ -254,7 +254,7 @@ const startBurn = async () => {
 
   const burnPlan = await createBurnPlan({
     totalAmount: config.value.totalAmount,
-    timeline: config.value.timeline || '30d',
+    timeline: config.value.timeline ? `${config.value.timeline}d` : '30d',
     architecture: config.value.architecture,
     burningStyle: config.value.burningStyle,
     efficiencyLevel: config.value.efficiencyLevel,
