@@ -46,7 +46,13 @@ class StrandsService:
 
         # Parse and validate response
         try:
-            burn_plan = BurnPlan(**response)
+            # Check if response is wrapped in 'analysis' key
+            if isinstance(response, dict) and 'analysis' in response:
+                burn_plan_data = response['analysis']
+            else:
+                burn_plan_data = response
+            
+            burn_plan = BurnPlan(**burn_plan_data)
         except Exception as e:
             raise AgentCoreError(f"Failed to parse burn plan response: {e}")
 
