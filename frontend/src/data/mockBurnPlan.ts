@@ -83,4 +83,8 @@ export const mockBurnPlan: BurnPlanResponse = {
     'Use RDS instances only when needed and shut them down when not in use',
     'Optimize storage usage based on actual data needs',
   ],
+  achievement: {
+    title: 'Budget Arsonist',
+    text: "You didn't just burn the budget - you doused it in gasoline and threw in a match. The finance team is calling the fire department.",
+  },
 };
