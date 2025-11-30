@@ -295,29 +295,6 @@ export class R2RStack extends cdk.Stack {
     // Add Burn Plan endpoint (not under /api)
     const burnPlanResource = api.root.addResource('burn-plan');
     burnPlanResource.addMethod('POST', new apigateway.LambdaIntegration(burnPlanFunction));
-    burnPlanResource.addMethod('OPTIONS', new apigateway.MockIntegration({
-      integrationResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
-          'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'",
-          'method.response.header.Access-Control-Allow-Origin': "'*'",
-        },
-      }],
-      passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
-      requestTemplates: {
-        'application/json': '{"statusCode": 200}',
-      },
-    }), {
-      methodResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Headers': true,
-          'method.response.header.Access-Control-Allow-Methods': true,
-          'method.response.header.Access-Control-Allow-Origin': true,
-        },
-      }],
-    });
 
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
