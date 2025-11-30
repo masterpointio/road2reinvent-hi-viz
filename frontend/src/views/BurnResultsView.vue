@@ -23,7 +23,7 @@
         <div class="stat-card stat-card--primary">
           <div class="stat-card__icon">💸</div>
           <div class="stat-card__content">
-            <div class="stat-card__value">{{ burnPlan.total_amount }}</div>
+            <div class="stat-card__value">${{ Math.floor(burnPlan.total_calculated_cost * animationProgress).toLocaleString() }}</div>
             <div class="stat-card__label">Total Burned</div>
           </div>
         </div>
@@ -53,20 +53,54 @@
         </div>
       </div>
 
+      <!-- Overall Roast Widget -->
+      <UiCard v-if="burnPlan?.roast" class="burn-results__roast-card">
+        <template #header>🔥 Overall Roast</template>
+        <div class="overall-roast">
+          <div class="overall-roast__icon">💬</div>
+          <div class="overall-roast__text">{{ burnPlan.roast }}</div>
+        </div>
+      </UiCard>
+
       <!-- Charts -->
       <div class="burn-results__content">
+        <!-- Stacked Area Chart -->
+        <UiCard class="burn-results__card burn-results__card--full">
+          <template #header>💸 Money Burn Over Time (Stacked Area)</template>
+          <v-chart class="burn-results__chart" :option="stackedAreaOption" autoresize />
+        </UiCard>
+
+        <!-- Gauge Chart -->
         <UiCard class="burn-results__card">
-          <template #header>Cost by Service</template>
+          <template #header>🔥 Burn Rate Meter</template>
+          <v-chart class="burn-results__chart burn-results__chart--gauge" :option="gaugeOption" autoresize />
+        </UiCard>
+
+        <!-- Racing Bar Chart -->
+        <UiCard class="burn-results__card">
+          <template #header>🏁 Service Burn Race</template>
+          <v-chart class="burn-results__chart" :option="racingBarOption" autoresize />
+        </UiCard>
+
+        <!-- Stacked Bar Timeline -->
+        <UiCard class="burn-results__card burn-results__card--full">
+          <template #header>📊 Daily Burn Breakdown</template>
+          <v-chart class="burn-results__chart" :option="stackedBarOption" autoresize />
+        </UiCard>
+
+        <!-- Original Charts for Comparison -->
+        <UiCard class="burn-results__card">
+          <template #header>Cost by Service (Original)</template>
           <v-chart class="burn-results__chart" :option="topServicesOption" autoresize />
         </UiCard>
 
         <UiCard class="burn-results__card">
-          <template #header>Cost Distribution</template>
+          <template #header>Cost Distribution (Original)</template>
           <v-chart class="burn-results__chart burn-results__chart--pie" :option="pieChartOption" autoresize />
         </UiCard>
 
         <UiCard class="burn-results__card burn-results__card--full">
-          <template #header>Cost Over Time</template>
+          <template #header>Cost Over Time (Original Line)</template>
           <v-chart class="burn-results__chart" :option="timelineChartOption" autoresize />
         </UiCard>
 
@@ -112,42 +146,171 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useToasts } from '../composables/useToasts';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { BarChart, LineChart, PieChart } from 'echarts/charts';
+import { BarChart, LineChart, PieChart, GaugeChart } from 'echarts/charts';
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
 import type { BurnPlanResponse } from '../types/burnPlan';
 import { convertToChartData } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
-use([CanvasRenderer, BarChart, LineChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
+use([CanvasRenderer, BarChart, LineChart, PieChart, GaugeChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
 
 const router = useRouter();
+const { info } = useToasts();
 const burnPlan = ref<BurnPlanResponse | null>(null);
+const animationProgress = ref(0);
+const currentRoast = ref('');
+const roasts = ref<string[]>([]);
+const roastIndex = ref(0);
+let animationFrame: number | null = null;
+let startTime: number | null = null;
+let roastInterval: number | null = null;
+
+const ANIMATION_DURATION = 10000; // 10 seconds
+const ROAST_INTERVAL = 5000; // Show new roast every 5 seconds
 
 onMounted(() => {
   const stored = sessionStorage.getItem('currentBurnPlan');
   if (stored) {
     try {
       burnPlan.value = JSON.parse(stored);
+      generateRoasts();
+      startAnimation();
+      startRoastCycle();
     } catch (error) {
       console.error('Failed to parse burn plan:', error);
     }
   }
 });
 
+onUnmounted(() => {
+  if (animationFrame) {
+    cancelAnimationFrame(animationFrame);
+  }
+  if (roastInterval) {
+    clearInterval(roastInterval);
+  }
+});
+
+const startAnimation = () => {
+  startTime = Date.now();
+  
+  const animate = () => {
+    if (!startTime) return;
+    
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+    
+    animationProgress.value = progress;
+    
+    if (progress < 1) {
+      animationFrame = requestAnimationFrame(animate);
+    }
+  };
+  
+  animate();
+};
+
+const generateRoasts = () => {
+  if (!burnPlan.value) return;
+  
+  // Use service roasts from each deployed service
+  roasts.value = burnPlan.value.services_deployed
+    .filter((service) => service.roast)
+    .map((service) => `${service.service_name}: ${service.roast}`);
+  
+  // If no service roasts, generate fallback
+  if (roasts.value.length === 0 && burnPlan.value.services_deployed.length > 0) {
+    const topService = burnPlan.value.services_deployed[0];
+    
+    if (topService) {
+      roasts.value = [
+        `${topService.service_name}: Using ${topService.instance_type} for this? That's like using a rocket to deliver pizza.`,
+        `Your ${topService.service_name} instances are burning $${Math.round(topService.total_cost).toLocaleString()}. They're lonelier than a 404 page.`,
+      ];
+    }
+  }
+  
+  if (roasts.value.length > 0 && roasts.value[0]) {
+    currentRoast.value = roasts.value[0];
+  }
+};
+
+const startRoastCycle = () => {
+  // Show first roast immediately
+  const firstRoast = roasts.value[0];
+  if (firstRoast) {
+    info(firstRoast, 4500);
+  }
+  
+  // Then cycle through remaining roasts
+  roastInterval = window.setInterval(() => {
+    roastIndex.value = (roastIndex.value + 1) % roasts.value.length;
+    const nextRoast = roasts.value[roastIndex.value];
+    if (nextRoast) {
+      currentRoast.value = nextRoast;
+      // Show as toast
+      info(nextRoast, 4500);
+    }
+  }, ROAST_INTERVAL);
+};
+
 const chartData = computed(() => {
   if (!burnPlan.value) return null;
-  return convertToChartData(burnPlan.value);
+  const fullData = convertToChartData(burnPlan.value);
+  
+  // Use exponential easing for more dramatic growth
+  const exponentialProgress = Math.pow(animationProgress.value, 1.5);
+  
+  // Add variability to timeline data
+  const addVariability = (value: number, index: number) => {
+    // Add some randomness but keep it consistent per index
+    const seed = index * 0.1;
+    const variance = Math.sin(seed) * 0.15; // ±15% variance
+    return Math.round(value * exponentialProgress * (1 + variance));
+  };
+  
+  return {
+    racingBarData: fullData.racingBarData.map((item) => ({
+      ...item,
+      value: Math.round(item.value * exponentialProgress),
+    })),
+    pieChartData: fullData.pieChartData.map((item) => ({
+      ...item,
+      value: Math.round(item.value * exponentialProgress),
+    })),
+    timelineData: {
+      timestamps: fullData.timelineData.timestamps,
+      values: fullData.timelineData.values.map((v, idx) => addVariability(v, idx)),
+    },
+    totalCost: Math.round(fullData.totalCost * exponentialProgress),
+    timeline: fullData.timeline,
+  };
 });
 
 const goBack = () => {
   router.push('/app/burn-config');
 };
+
+// Get the maximum cost for fixed Y-axis scaling
+const maxCost = computed(() => {
+  if (!burnPlan.value) return 10000;
+  return burnPlan.value.total_calculated_cost;
+});
+
+// Get the maximum daily cost for the stacked bar chart
+const maxDailyCost = computed(() => {
+  if (!burnPlan.value) return 1000;
+  const days = burnPlan.value.timeline_days;
+  // Estimate max daily cost (total / days with some buffer for stacking)
+  return Math.ceil((burnPlan.value.total_calculated_cost / days) * 1.5);
+});
 
 const neonColors = {
   hiviz: '#c0ff00',
@@ -161,7 +324,7 @@ const neonColors = {
 
 const topServicesOption = computed(() => ({
   backgroundColor: 'transparent',
-  animationDuration: 2500,
+  animation: false,
   grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
   xAxis: {
     type: 'value',
@@ -211,7 +374,7 @@ const topServicesOption = computed(() => ({
 
 const pieChartOption = computed(() => ({
   backgroundColor: 'transparent',
-  animationDuration: 2000,
+  animation: false,
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(10, 10, 15, 0.9)',
@@ -249,7 +412,7 @@ const pieChartOption = computed(() => ({
 
 const timelineChartOption = computed(() => ({
   backgroundColor: 'transparent',
-  animationDuration: 2000,
+  animation: false,
   grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
   xAxis: {
     type: 'category',
@@ -259,6 +422,7 @@ const timelineChartOption = computed(() => ({
   },
   yAxis: {
     type: 'value',
+    max: maxCost.value,
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
     axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
     splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
@@ -291,6 +455,255 @@ const timelineChartOption = computed(() => ({
     },
   ],
 }));
+
+// Stacked Area Chart - Shows service contributions over time
+const stackedAreaOption = computed(() => {
+  if (!burnPlan.value || !chartData.value) return {};
+  
+  const services = burnPlan.value.services_deployed.slice(0, 5); // Top 5 services
+  const colors = [neonColors.hiviz, neonColors.pink, neonColors.blue, neonColors.purple, neonColors.orange];
+  
+  return {
+    backgroundColor: 'transparent',
+    animation: false,
+    grid: { left: '10%', right: '10%', top: '15%', bottom: '15%' },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(10, 10, 15, 0.9)',
+      borderColor: neonColors.hiviz,
+      borderWidth: 2,
+      textStyle: { color: '#fff' },
+      formatter: (params: any) => {
+        let result = `${params[0].axisValue}<br/>`;
+        params.forEach((item: any) => {
+          result += `${item.marker} ${item.seriesName}: $${item.value}<br/>`;
+        });
+        return result;
+      },
+    },
+    legend: {
+      data: services.map((s) => s.service_name),
+      textStyle: { color: '#fff', fontSize: 11 },
+      top: '5%',
+    },
+    xAxis: {
+      type: 'category',
+      data: chartData.value.timelineData.timestamps,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value',
+      max: maxCost.value,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
+    },
+    series: services.map((service, idx) => ({
+      name: service.service_name,
+      type: 'line',
+      stack: 'total',
+      areaStyle: {
+        color: colors[idx],
+        opacity: 0.6,
+      },
+      lineStyle: {
+        color: colors[idx],
+        width: 2,
+      },
+      emphasis: {
+        focus: 'series',
+      },
+      data: chartData.value?.timelineData.values.map((v: number) => 
+        Math.round((service.total_cost / burnPlan.value!.total_calculated_cost) * v)
+      ) || [],
+    })),
+  };
+});
+
+// Gauge Chart - Shows burn rate as a speedometer
+const gaugeOption = computed(() => {
+  const progress = Math.round(animationProgress.value * 100);
+  
+  return {
+    backgroundColor: 'transparent',
+    animation: false,
+    series: [
+      {
+        type: 'gauge',
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 100,
+        splitNumber: 10,
+        axisLine: {
+          lineStyle: {
+            width: 30,
+            color: [
+              [0.3, neonColors.green],
+              [0.6, neonColors.orange],
+              [1, neonColors.pink],
+            ],
+          },
+        },
+        pointer: {
+          itemStyle: {
+            color: neonColors.hiviz,
+            shadowColor: neonColors.hiviz,
+            shadowBlur: 10,
+          },
+        },
+        axisTick: {
+          distance: -30,
+          length: 8,
+          lineStyle: {
+            color: '#fff',
+            width: 2,
+          },
+        },
+        splitLine: {
+          distance: -30,
+          length: 30,
+          lineStyle: {
+            color: '#fff',
+            width: 4,
+          },
+        },
+        axisLabel: {
+          color: '#fff',
+          distance: 40,
+          fontSize: 12,
+        },
+        detail: {
+          valueAnimation: false,
+          formatter: '{value}%',
+          color: neonColors.hiviz,
+          fontSize: 32,
+          fontWeight: 'bold',
+          offsetCenter: [0, '70%'],
+        },
+        data: [{ value: progress, name: 'Burn Progress' }],
+      },
+    ],
+  };
+});
+
+// Racing Bar Chart - Animated horizontal bars
+const racingBarOption = computed(() => {
+  if (!chartData.value) return {};
+  
+  const topServices = chartData.value.racingBarData.slice(0, 8);
+  
+  return {
+    backgroundColor: 'transparent',
+    animation: false,
+    grid: { left: '25%', right: '15%', top: '5%', bottom: '5%' },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', formatter: '${value}', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
+    },
+    yAxis: {
+      type: 'category',
+      data: topServices.map((item) => item.name),
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', fontSize: 10 },
+      inverse: true,
+    },
+    series: [
+      {
+        type: 'bar',
+        data: topServices.map((item, idx) => ({
+          value: item.value,
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
+              colorStops: [
+                { offset: 0, color: [neonColors.hiviz, neonColors.pink, neonColors.blue, neonColors.purple][idx % 4] },
+                { offset: 1, color: [neonColors.hivizBright, neonColors.orange, neonColors.green, neonColors.pink][idx % 4] },
+              ],
+            },
+            shadowBlur: 10,
+          },
+        })),
+        label: {
+          show: true,
+          position: 'right',
+          color: '#fff',
+          formatter: '${c}',
+          fontSize: 10,
+        },
+        barWidth: '70%',
+      },
+    ],
+  };
+});
+
+// Stacked Bar Timeline - Shows daily breakdown
+const stackedBarOption = computed(() => {
+  if (!burnPlan.value || !chartData.value) return {};
+  
+  const services = burnPlan.value.services_deployed.slice(0, 5);
+  const colors = [neonColors.hiviz, neonColors.pink, neonColors.blue, neonColors.purple, neonColors.orange];
+  const days = Math.min(burnPlan.value.timeline_days, 30);
+  const categories = Array.from({ length: days }, (_, i) => `Day ${i + 1}`);
+  
+  return {
+    backgroundColor: 'transparent',
+    animation: false,
+    grid: { left: '10%', right: '10%', top: '15%', bottom: '15%' },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(10, 10, 15, 0.9)',
+      borderColor: neonColors.hiviz,
+      borderWidth: 2,
+      textStyle: { color: '#fff' },
+      axisPointer: {
+        type: 'shadow',
+      },
+    },
+    legend: {
+      data: services.map((s) => s.service_name),
+      textStyle: { color: '#fff', fontSize: 10 },
+      top: '5%',
+    },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', fontSize: 9, rotate: 45 },
+    },
+    yAxis: {
+      type: 'value',
+      max: maxDailyCost.value,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
+    },
+    series: services.map((service, idx) => ({
+      name: service.service_name,
+      type: 'bar',
+      stack: 'total',
+      emphasis: {
+        focus: 'series',
+      },
+      itemStyle: {
+        color: colors[idx],
+      },
+      data: Array.from({ length: days }, (_, day) => {
+        if (day >= service.start_day && day <= service.end_day) {
+          return Math.round((service.total_cost / (service.end_day - service.start_day)) * animationProgress.value);
+        }
+        return 0;
+      }),
+    })),
+  };
+});
 </script>
 
 <style scoped>
@@ -325,6 +738,33 @@ const timelineChartOption = computed(() => ({
   text-align: center;
   padding: var(--space-xxl);
   color: var(--color-text-muted);
+}
+
+.burn-results__roast-card {
+  margin-bottom: var(--space-lg);
+}
+
+.overall-roast {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(192, 255, 0, 0.1), rgba(255, 0, 110, 0.1));
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid var(--color-primary);
+}
+
+.overall-roast__icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.overall-roast__text {
+  font-size: 1.125rem;
+  color: var(--color-text);
+  line-height: 1.7;
+  font-style: italic;
+  font-weight: 500;
 }
 
 .burn-results__stats {
@@ -397,6 +837,10 @@ const timelineChartOption = computed(() => ({
 
 .burn-results__chart--pie {
   height: 350px;
+}
+
+.burn-results__chart--gauge {
+  height: 300px;
 }
 
 .services-list {

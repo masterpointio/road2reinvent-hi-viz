@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { useApi } from './useApi';
+import type { ApiResponse } from '../lib/apiClient';
 import type { BurnPlanResponse } from '../types/burnPlan';
 
 export interface GenerateBurnPlanRequest {
@@ -25,12 +26,12 @@ export const useBurnPlan = () => {
   const isRoasting = ref(false);
   const error = ref<string | null>(null);
 
-  const generateBurnPlan = async (request: GenerateBurnPlanRequest) => {
+  const generateBurnPlan = async (request: GenerateBurnPlanRequest): Promise<BurnPlanResponse | null> => {
     isGenerating.value = true;
     error.value = null;
 
     try {
-      const response = await api.post<BurnPlanResponse>('/generate-burn-plan', request);
+      const response = await api.post<ApiResponse<BurnPlanResponse>>('/generate-burn-plan', request);
       
       if (response.error) {
         throw new Error(response.error);
@@ -45,12 +46,12 @@ export const useBurnPlan = () => {
     }
   };
 
-  const generateRoast = async (burnPlan: RoastRequest) => {
+  const generateRoast = async (burnPlan: RoastRequest): Promise<string> => {
     isRoasting.value = true;
     error.value = null;
 
     try {
-      const response = await api.post<{ roast: string }>('/roast', burnPlan);
+      const response = await api.post<ApiResponse<{ roast: string }>>('/roast', burnPlan);
       
       if (response.error) {
         throw new Error(response.error);

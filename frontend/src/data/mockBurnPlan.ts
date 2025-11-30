@@ -16,6 +16,7 @@ export const mockBurnPlan: BurnPlanResponse = {
       duration_used: 'entire timeline',
       usage_pattern: 'Running 24/7',
       waste_factor: 'Massive over-provisioning for a single microservice',
+      roast: 'Running 50 EKS nodes for a single microservice? That\'s like using a nuclear reactor to charge your phone.',
     },
     {
       service_name: 'S3',
@@ -28,6 +29,7 @@ export const mockBurnPlan: BurnPlanResponse = {
       duration_used: 'entire timeline',
       usage_pattern: 'Running 24/7',
       waste_factor: 'Over-provisioned storage for minimal data',
+      roast: 'Storing 1000GB in S3 Standard for data you access once a year? Glacier is crying.',
     },
     {
       service_name: 'CloudFront',
@@ -40,6 +42,7 @@ export const mockBurnPlan: BurnPlanResponse = {
       duration_used: 'entire timeline',
       usage_pattern: 'Running 24/7',
       waste_factor: 'Running CloudFront for internal-only applications',
+      roast: 'Using CloudFront for internal apps? That\'s like hiring a limo for your daily commute.',
     },
     {
       service_name: 'SageMaker',
@@ -52,6 +55,7 @@ export const mockBurnPlan: BurnPlanResponse = {
       duration_used: 'entire timeline',
       usage_pattern: 'Running 24/7',
       waste_factor: 'Running SageMaker notebooks 24/7 with large instances',
+      roast: '10 SageMaker notebooks running 24/7? Those GPUs are lonelier than a 404 page.',
     },
     {
       service_name: 'RDS',
@@ -64,6 +68,7 @@ export const mockBurnPlan: BurnPlanResponse = {
       duration_used: 'entire timeline',
       usage_pattern: 'Running 24/7',
       waste_factor: 'Running RDS databases 24/7 for development environments',
+      roast: '5 RDS instances for dev? That\'s like having a backup generator for your nightlight.',
     },
   ],
   total_calculated_cost: 10212.5,
@@ -83,4 +88,5 @@ export const mockBurnPlan: BurnPlanResponse = {
     'Use RDS instances only when needed and shut them down when not in use',
     'Optimize storage usage based on actual data needs',
   ],
+  roast: "You've spent $10,212 on a cloud infrastructure that's more over-engineered than a NASA rover. Using 50 EKS nodes for a single microservice, CloudFront for internal apps, and SageMaker notebooks running 24/7? You've built a spaceship to deliver a letter. Congratulations on the most wasteful cloud deployment of the century.",
 };

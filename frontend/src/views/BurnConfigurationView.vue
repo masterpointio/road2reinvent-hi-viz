@@ -265,6 +265,58 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
   const timeline = cfg.timeline || 30;
   const services: ServiceDeployment[] = [];
 
+  const generateServiceRoast = (serviceName: string, instanceType: string, wasteFactor: string): string => {
+    const roasts: Record<string, string[]> = {
+      Lambda: [
+        `${instanceType} Lambda functions? That's like using a sledgehammer to hang a picture.`,
+        'Millions of Lambda invocations for hello world? The cloud is crying.',
+      ],
+      'API Gateway': [
+        'An API Gateway that nobody calls? At least it has job security.',
+        'REST API for internal use? That\'s like hiring a translator for yourself.',
+      ],
+      DynamoDB: [
+        'DynamoDB for 3 records? That\'s like renting a warehouse for a shoebox.',
+        'On-demand pricing for data you never access? Bold strategy.',
+      ],
+      S3: [
+        'S3 Standard for archival data? Glacier is having an existential crisis.',
+        'Storing artifacts forever? Marie Kondo would not approve.',
+      ],
+      EKS: [
+        'EKS cluster for a single pod? That\'s like buying a stadium for a chess match.',
+        'Kubernetes for this? You could\'ve just used a Raspberry Pi.',
+      ],
+      EC2: [
+        `${instanceType} for this workload? That's like using a rocket to deliver pizza.`,
+        'Those vCPUs are lonelier than a 404 page.',
+      ],
+      ALB: [
+        'Load balancing zero traffic? At least it\'s getting paid to do nothing.',
+        'An ALB for one server? That\'s adorable.',
+      ],
+      EBS: [
+        'Provisioned IOPS for logs? Those logs must be very important.',
+        'That storage costs more than the data it holds.',
+      ],
+      RDS: [
+        `${instanceType} database for a todo list? Your 3 users will appreciate the redundancy.`,
+        'Multi-AZ for dev? That\'s like having a backup parachute for your office chair.',
+      ],
+      'NAT Gateway': [
+        'NAT Gateway routing packets to nowhere? Efficient.',
+        'That NAT Gateway costs more than your actual compute.',
+      ],
+      SageMaker: [
+        'SageMaker notebooks running 24/7? Those GPUs are bored.',
+        `${instanceType} for a simple model? That's like using a supercomputer for a calculator.`,
+      ],
+    };
+
+    const serviceRoasts = roasts[serviceName] || [`${serviceName} ${instanceType}? Interesting choice.`];
+    return serviceRoasts[Math.floor(Math.random() * serviceRoasts.length)] || `${serviceName} roast unavailable`;
+  };
+
   if (cfg.architecture === 'serverless') {
     services.push(
       {
@@ -278,6 +330,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Millions of invocations for hello world',
+        roast: generateServiceRoast('Lambda', '1GB Memory', 'Millions of invocations for hello world'),
       },
       {
         service_name: 'API Gateway',
@@ -290,6 +343,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'API that nobody calls',
+        roast: generateServiceRoast('API Gateway', 'REST API', 'API that nobody calls'),
       },
       {
         service_name: 'DynamoDB',
@@ -302,6 +356,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Database for 3 records',
+        roast: generateServiceRoast('DynamoDB', 'On-Demand', 'Database for 3 records'),
       },
       {
         service_name: 'S3',
@@ -314,6 +369,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Storing artifacts forever',
+        roast: generateServiceRoast('S3', 'Standard', 'Storing artifacts forever'),
       }
     );
   } else if (cfg.architecture === 'kubernetes') {
@@ -329,6 +385,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Cluster for single pod',
+        roast: generateServiceRoast('EKS', 'Cluster', 'Cluster for single pod'),
       },
       {
         service_name: 'EC2',
@@ -341,6 +398,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Nodes at 5% CPU',
+        roast: generateServiceRoast('EC2', 'm5.2xlarge', 'Nodes at 5% CPU'),
       },
       {
         service_name: 'ALB',
@@ -353,6 +411,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Load balancing zero traffic',
+        roast: generateServiceRoast('ALB', 'Load Balancer', 'Load balancing zero traffic'),
       },
       {
         service_name: 'EBS',
@@ -365,6 +424,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Provisioned IOPS for logs',
+        roast: generateServiceRoast('EBS', 'io2', 'Provisioned IOPS for logs'),
       }
     );
   } else if (cfg.architecture === 'traditional') {
@@ -380,6 +440,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: '96 vCPUs for WordPress',
+        roast: generateServiceRoast('EC2', 'm5.24xlarge', '96 vCPUs for WordPress'),
       },
       {
         service_name: 'RDS',
@@ -392,6 +453,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Multi-AZ for todo list',
+        roast: generateServiceRoast('RDS', 'db.r6g.8xlarge', 'Multi-AZ for todo list'),
       },
       {
         service_name: 'NAT Gateway',
@@ -404,6 +466,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Routing to nowhere',
+        roast: generateServiceRoast('NAT Gateway', 'NAT Gateway', 'Routing to nowhere'),
       },
       {
         service_name: 'EBS',
@@ -416,6 +479,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Fast storage for slow queries',
+        roast: generateServiceRoast('EBS', 'gp3', 'Fast storage for slow queries'),
       }
     );
   } else {
@@ -431,6 +495,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Underutilized fleet',
+        roast: generateServiceRoast('EC2', 'm5.xlarge', 'Underutilized fleet'),
       },
       {
         service_name: 'Lambda',
@@ -443,6 +508,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Serverless chaos',
+        roast: generateServiceRoast('Lambda', '512MB', 'Serverless chaos'),
       },
       {
         service_name: 'RDS',
@@ -455,6 +521,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Two databases',
+        roast: generateServiceRoast('RDS', 'db.t3.large', 'Two databases'),
       },
       {
         service_name: 'DynamoDB',
@@ -467,6 +534,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Redundant with RDS',
+        roast: generateServiceRoast('DynamoDB', 'On-Demand', 'Redundant with RDS'),
       },
       {
         service_name: 'S3',
@@ -479,6 +547,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Redundant storage',
+        roast: generateServiceRoast('S3', 'Standard', 'Redundant storage'),
       },
       {
         service_name: 'NAT Gateway',
@@ -491,16 +560,22 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
         duration_used: 'entire timeline',
         usage_pattern: 'Running 24/7',
         waste_factor: 'Network complexity',
+        roast: generateServiceRoast('NAT Gateway', 'NAT Gateway', 'Network complexity'),
       }
     );
   }
 
   const totalCost = services.reduce((sum, s) => sum + s.total_cost, 0);
+  const topService = services[0];
+  const topServiceName = topService?.service_name || 'services';
+  const topServiceType = topService?.instance_type || 'instances';
 
   return {
     total_amount: `$${amount}`,
     timeline_days: timeline,
     efficiency_level: efficiencyLevelLabel.value,
+    architecture_type: cfg.architecture,
+    burning_style: cfg.burningStyle,
     services_deployed: services,
     total_calculated_cost: totalCost,
     deployment_scenario: `${cfg.architecture} architecture with ${cfg.burningStyle} scaling over ${timeline} days`,
@@ -511,6 +586,7 @@ function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
       'Consider reserved instances',
       'Implement cost monitoring',
     ],
+    roast: `You've spent $${Math.round(totalCost).toLocaleString()} on a ${cfg.architecture} architecture that's more over-engineered than a NASA rover. Using ${topServiceName} ${topServiceType} for this workload? You've built a spaceship to deliver a letter. That's ${Math.round(totalCost / 2)} burritos or ${Math.round(totalCost / 15)} Netflix subscriptions you'll never enjoy. Congratulations on achieving "${efficiencyLevelLabel.value}" level efficiency!`,
   };
 }
 </script>
