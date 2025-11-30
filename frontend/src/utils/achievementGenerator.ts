@@ -44,5 +44,5 @@ const ACHIEVEMENT_TYPES: Achievement[] = [
  */
 export function generateRandomAchievement(): Achievement {
   const randomIndex = Math.floor(Math.random() * ACHIEVEMENT_TYPES.length);
-  return ACHIEVEMENT_TYPES[randomIndex];
+  return ACHIEVEMENT_TYPES[randomIndex]!;
 }

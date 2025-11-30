@@ -48,6 +48,11 @@ const routes: RouteRecordRaw[] = [
         name: 'burn-config',
         component: () => import('../views/BurnConfigurationView.vue'),
       },
+      {
+        path: 'burn-results',
+        name: 'burn-results',
+        component: () => import('../views/BurnResultsView.vue'),
+      },
     ],
   },
   {

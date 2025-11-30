@@ -10,12 +10,6 @@
           <router-link to="/app/burn-config" class="app-layout__nav-link">
             ⚙️ Configure Burn
           </router-link>
-          <router-link to="/components" class="app-layout__nav-link">
-            🎨 Components
-          </router-link>
-          <router-link to="/charts" class="app-layout__nav-link">
-            📊 Charts
-          </router-link>
         </nav>
         <div class="app-layout__nav-actions">
           <div class="app-layout__theme-menu">
@@ -59,7 +53,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useTheme } from '../composables/useTheme';
+import { useTheme, type Theme } from '../composables/useTheme';
 import { useAuth } from '../composables/useAuth';
 import UiToastContainer from '../components/UiToastContainer.vue';
 import BillBurnerLogo from '../components/BillBurnerLogo.vue';
@@ -90,7 +84,7 @@ const toggleThemeMenu = () => {
 };
 
 const selectTheme = (theme: string) => {
-  setTheme(theme as any);
+  setTheme(theme as Theme);
   showThemeMenu.value = false;
 };
 

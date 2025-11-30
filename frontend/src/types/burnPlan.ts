@@ -2,11 +2,14 @@ export interface BurnPlanResponse {
   total_amount: string;
   timeline_days: number;
   efficiency_level: string;
+  architecture_type?: string;
+  burning_style?: string;
   services_deployed: ServiceDeployment[];
   total_calculated_cost: number;
   deployment_scenario: string;
   key_mistakes: string[];
   recommendations: string[];
+  roast: string,
   achievement?: {
     title: string;
     text: string;
@@ -24,6 +27,7 @@ export interface ServiceDeployment {
   duration_used: string;
   usage_pattern: string;
   waste_factor: string;
+  roast: string;
 }
 
 // Helper to convert backend format to frontend chart format

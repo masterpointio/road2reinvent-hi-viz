@@ -199,9 +199,29 @@ use([
 
 const router = useRouter();
 
-// Use mock burn plan data
+// Load burn plan from session storage or use mock
+const loadedBurnPlan = ref<BurnPlanResponse | null>(null);
+
+onMounted(() => {
+  const stored = sessionStorage.getItem('currentBurnPlan');
+  if (stored) {
+    try {
+      loadedBurnPlan.value = JSON.parse(stored);
+    } catch (error) {
+      console.error('Failed to parse burn plan:', error);
+      loadedBurnPlan.value = mockBurnPlan;
+    }
+  } else {
+    loadedBurnPlan.value = mockBurnPlan;
+  }
+});
+
+// Use loaded burn plan data
 const currentAmount = ref(10000);
-const currentBurnPlan = computed(() => scaleBurnPlan(mockBurnPlan, currentAmount.value));
+const currentBurnPlan = computed(() => {
+  const plan = loadedBurnPlan.value || mockBurnPlan;
+  return scaleBurnPlan(plan, currentAmount.value);
+});
 const chartData = computed(() => convertToChartData(currentBurnPlan.value));
 
 // Achievement state
