@@ -244,13 +244,30 @@ Focus on the absurdity of the spending choices."""
                 )
                 raise last_error
 
-            except self.client.exceptions.ServiceUnavailableException as e:
-                last_error = AgentConnectionError(f"Service unavailable: {e}")
+            except self.client.exceptions.InternalServerException as e:
+                last_error = AgentConnectionError(f"Internal server error: {e}")
                 if attempt < self.max_retries:
                     wait_time = 2 ** attempt
-                    print(f"Service unavailable on attempt {attempt + 1}, retrying in {wait_time}s...")
+                    print(f"Internal server error on attempt {attempt + 1}, retrying in {wait_time}s...")
                     time.sleep(wait_time)
                     continue
+                raise last_error
+
+            except (
+                self.client.exceptions.AccessDeniedException,
+                self.client.exceptions.UnauthorizedException
+            ) as e:
+                # Don't retry auth errors
+                last_error = AgentCoreError(f"Authentication/Authorization failed: {e}")
+                raise last_error
+
+            except (
+                self.client.exceptions.ResourceNotFoundException,
+                self.client.exceptions.InvalidInputException,
+                self.client.exceptions.ValidationException
+            ) as e:
+                # Don't retry validation errors
+                last_error = AgentCoreError(f"Invalid request: {e}")
                 raise last_error
 
             except Exception as e:
