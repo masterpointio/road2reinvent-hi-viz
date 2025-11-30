@@ -142,14 +142,14 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToasts } from '../composables/useToasts';
-import { useBurnPlan } from '../composables/useBurnPlan';
+import { useApi } from '../composables/useApi';
 import type { BurnPlanResponse, ServiceDeployment } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
 const router = useRouter();
 const { success, error: showError } = useToasts();
-const { createBurnPlan, isLoading: isBurnPlanLoading } = useBurnPlan();
+const isBurnPlanLoading = ref(false);
 
 interface BurnConfig {
   totalAmount: number | null;
@@ -248,40 +248,53 @@ const resetForm = () => {
 };
 
 const startBurn = async () => {
-  console.log('startBurn called');
-  console.log('isFormValid:', isFormValid.value);
-  console.log('config:', config.value);
-  
   if (!isFormValid.value || !config.value.totalAmount || !config.value.timeline) {
-    console.log('Form validation failed');
     return;
   }
 
+  isBurnPlanLoading.value = true;
   success('Generating your burn plan...');
 
-  console.log('Calling createBurnPlan...');
-  const burnPlan = await createBurnPlan({
-    totalAmount: config.value.totalAmount,
-    timeline: config.value.timeline,
-    architecture: config.value.architecture as 'serverless' | 'kubernetes' | 'traditional' | 'mixed',
-    burningStyle: config.value.burningStyle as 'horizontal' | 'vertical',
-    efficiencyLevel: config.value.efficiencyLevel,
-  });
+  // Make API call directly to store raw response
+  try {
+    const stupidityMap: Record<number, string> = {
+      1: 'Mildly dumb',
+      2: 'Mildly dumb',
+      3: 'Moderately stupid',
+      4: 'Moderately stupid',
+      5: 'Moderately stupid',
+      6: 'Very stupid',
+      7: 'Very stupid',
+      8: 'Very stupid',
+      9: 'Brain damage',
+      10: 'Brain damage',
+    };
 
-  console.log('createBurnPlan returned:', burnPlan);
+    const { post } = useApi();
+    const response = await post<any>('/api/burn-plan', {
+      config: {
+        amount: `$${config.value.totalAmount}`,
+        timeline: config.value.timeline,
+        architecture: config.value.architecture,
+        burning_style: config.value.burningStyle,
+        stupidity: stupidityMap[config.value.efficiencyLevel] || 'Moderately stupid',
+      },
+    });
 
-  if (!burnPlan) {
+    // Store the raw backend response (BurnResultsView expects this format)
+    sessionStorage.setItem('currentBurnPlan', JSON.stringify(response.burn_plan));
+
+    success('Burn plan generated! Redirecting...');
+
+    setTimeout(() => {
+      router.push('/app/burn-results');
+    }, 500);
+  } catch (err) {
     showError('Failed to generate burn plan. Please try again.');
-    return;
+    console.error('Error in startBurn:', err);
+  } finally {
+    isBurnPlanLoading.value = false;
   }
-
-  sessionStorage.setItem('currentBurnPlan', JSON.stringify(burnPlan));
-
-  success('Burn plan generated! Redirecting...');
-
-  setTimeout(() => {
-    router.push('/app/burn-results');
-  }, 500);
 };
 
 function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {
