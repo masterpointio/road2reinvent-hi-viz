@@ -1,5 +1,14 @@
 <template>
   <div class="dashboard">
+    <!-- Achievement Popup -->
+    <AchievementPopup
+      :show="showAchievementPopup"
+      :achievement-title="achievementTitle"
+      :achievement-text="achievementText"
+      :amount="totalBurned"
+      @accept="handleAchievementAccept"
+    />
+
     <div class="dashboard__header">
       <div>
         <h1>AWS Bill Burner</h1>
@@ -141,6 +150,16 @@
           </div>
         </div>
       </UiCard>
+
+      <!-- Achievement Card -->
+      <div v-if="showAchievementCard" class="dashboard__card">
+        <AchievementCard
+          :show="showAchievementCard"
+          :achievement-title="achievementTitle"
+          :achievement-text="achievementText"
+          :amount="totalBurned"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -152,6 +171,7 @@ import VChart from 'vue-echarts';
 import { mockBurnPlan } from '../data/mockBurnPlan';
 import { convertToChartData, scaleBurnPlan } from '../types/burnPlan';
 import type { BurnPlanResponse } from '../types/burnPlan';
+import { generateRandomAchievement } from '../utils/achievementGenerator';
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { BarChart, LineChart, PieChart } from 'echarts/charts';
@@ -163,6 +183,8 @@ import {
 } from 'echarts/components';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
+import AchievementPopup from '../components/AchievementPopup.vue';
+import AchievementCard from '../components/AchievementCard.vue';
 
 use([
   CanvasRenderer,
@@ -201,6 +223,29 @@ const currentBurnPlan = computed(() => {
   return scaleBurnPlan(plan, currentAmount.value);
 });
 const chartData = computed(() => convertToChartData(currentBurnPlan.value));
+
+// Achievement state
+const showAchievementPopup = ref(true);
+const showAchievementCard = ref(false);
+const randomAchievement = ref(generateRandomAchievement());
+
+const achievementTitle = computed(() => {
+  return currentBurnPlan.value.achievement?.title || randomAchievement.value.title;
+});
+
+const achievementText = computed(() => {
+  return currentBurnPlan.value.achievement?.text || randomAchievement.value.description;
+});
+
+const handleAchievementAccept = () => {
+  showAchievementPopup.value = false;
+  showAchievementCard.value = true;
+};
+
+// Generate a new random achievement on mount
+onMounted(() => {
+  randomAchievement.value = generateRandomAchievement();
+});
 
 // Dummy data for stats
 const totalBurned = computed(() => currentBurnPlan.value.total_calculated_cost);

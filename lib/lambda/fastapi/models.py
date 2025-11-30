@@ -30,7 +30,7 @@ class ServiceCost(BaseModel):
     quantity: int = Field(description="Number of instances or resources", default=1)
     start_day: int = Field(description="Day when service starts (0-based)", default=0)
     end_day: int = Field(description="Day when service ends (-1 for end of timeline)", default=-1)
-    duration_used: int = Field(description="Duration in days the service was used", default=0)
+    duration_used: str = Field(description="How long the service was running (e.g., '30 days', '2 weeks', 'entire timeline')")
     unit_cost: float = Field(description="Cost per unit (hourly or daily rate)")
     total_cost: float = Field(description="Total cost for this service in dollars")
     usage_pattern: Optional[str] = Field(default=None, description="Usage pattern description")

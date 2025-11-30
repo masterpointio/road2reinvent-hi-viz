@@ -268,28 +268,30 @@ const chartData = computed(() => {
   // Use exponential easing for more dramatic growth
   const exponentialProgress = Math.pow(animationProgress.value, 1.5);
   
-  // Add variability to timeline data
-  const addVariability = (value: number, index: number) => {
+  // Add variability to timeline data but cap at max values
+  const addVariability = (value: number, index: number, maxValue: number) => {
     // Add some randomness but keep it consistent per index
     const seed = index * 0.1;
-    const variance = Math.sin(seed) * 0.15; // ±15% variance
-    return Math.round(value * exponentialProgress * (1 + variance));
+    const variance = Math.sin(seed) * 0.1; // ±10% variance (reduced from 15%)
+    const result = value * exponentialProgress * (1 + variance);
+    // Cap at the original value to prevent overflow
+    return Math.min(Math.round(result), Math.round(value));
   };
   
   return {
     racingBarData: fullData.racingBarData.map((item) => ({
       ...item,
-      value: Math.round(item.value * exponentialProgress),
+      value: Math.min(Math.round(item.value * exponentialProgress), item.value),
     })),
     pieChartData: fullData.pieChartData.map((item) => ({
       ...item,
-      value: Math.round(item.value * exponentialProgress),
+      value: Math.min(Math.round(item.value * exponentialProgress), item.value),
     })),
     timelineData: {
       timestamps: fullData.timelineData.timestamps,
-      values: fullData.timelineData.values.map((v, idx) => addVariability(v, idx)),
+      values: fullData.timelineData.values.map((v, idx) => addVariability(v, idx, v)),
     },
-    totalCost: Math.round(fullData.totalCost * exponentialProgress),
+    totalCost: Math.min(Math.round(fullData.totalCost * exponentialProgress), fullData.totalCost),
     timeline: fullData.timeline,
   };
 });

@@ -89,4 +89,8 @@ export const mockBurnPlan: BurnPlanResponse = {
     'Optimize storage usage based on actual data needs',
   ],
   roast: "You've spent $10,212 on a cloud infrastructure that's more over-engineered than a NASA rover. Using 50 EKS nodes for a single microservice, CloudFront for internal apps, and SageMaker notebooks running 24/7? You've built a spaceship to deliver a letter. Congratulations on the most wasteful cloud deployment of the century.",
+  achievement: {
+    title: 'Budget Arsonist',
+    text: "You didn't just burn the budget - you doused it in gasoline and threw in a match. The finance team is calling the fire department.",
+  },
 };
