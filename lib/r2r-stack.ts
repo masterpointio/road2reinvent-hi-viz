@@ -296,6 +296,11 @@ export class R2RStack extends cdk.Stack {
       description: 'API Gateway URL',
     });
 
+    new cdk.CfnOutput(this, 'FastAPIUrl', {
+      value: `${api.url}api/health`,
+      description: 'FastAPI Health Check URL',
+    });
+
     // Note: Hosted Zone ID and Name Servers are not available when using fromLookup
     // Check the Route53 console or use AWS CLI to view these values
 

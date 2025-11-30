@@ -22,7 +22,7 @@
   - Add ANY method with Lambda proxy integration
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 4. Add stack output for FastAPI URL
+- [x] 4. Add stack output for FastAPI URL
 
   - Create CfnOutput with FastAPI health check URL
   - _Requirements: 6.1, 6.2, 6.3_
