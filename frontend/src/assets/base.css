@@ -58,8 +58,13 @@
   font-weight: normal;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   min-height: 100vh;
+  height: 100%;
   color: var(--color-text);
   background: var(--color-background);
   transition:
@@ -79,8 +84,20 @@ body {
     'Droid Sans',
     'Helvetica Neue',
     sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 16px;
+  }
 }

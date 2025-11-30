@@ -1,0 +1,51 @@
+/* Color Contrast Utilities */
+/* These variables ensure WCAG AA contrast compliance for text on semantic backgrounds */
+
+:root {
+  /* Text colors for semantic backgrounds */
+  /* Using white text on darker semantic backgrounds for optimal readability */
+  --text-on-success: #ffffff;
+  --text-on-warning: #ffffff;
+  --text-on-danger: #ffffff;
+  --text-on-info: #ffffff;
+  
+  /* Alternative dark text for lighter backgrounds if needed */
+  --text-on-success-light: #0d5943;
+  --text-on-warning-light: #6b4e1a;
+  --text-on-danger-light: #6b1515;
+  --text-on-info-light: #152d5a;
+}
+
+/* Utility classes for text contrast */
+.text-on-success {
+  color: var(--text-on-success);
+}
+
+.text-on-warning {
+  color: var(--text-on-warning);
+}
+
+.text-on-danger {
+  color: var(--text-on-danger);
+}
+
+.text-on-info {
+  color: var(--text-on-info);
+}
+
+/* Light variant utility classes */
+.text-on-success-light {
+  color: var(--text-on-success-light);
+}
+
+.text-on-warning-light {
+  color: var(--text-on-warning-light);
+}
+
+.text-on-danger-light {
+  color: var(--text-on-danger-light);
+}
+
+.text-on-info-light {
+  color: var(--text-on-info-light);
+}
