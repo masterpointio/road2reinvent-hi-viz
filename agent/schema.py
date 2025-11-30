@@ -22,6 +22,9 @@ class ServiceCost(BaseModel):
     waste_factor: str = Field(
         description="Why this is wasteful (e.g., 'Over-provisioned for workload', 'Redundant service', 'Unnecessary for use case')"
     )
+    roast: str = Field(
+        description="A brutal one or two-liner roast specifically calling out this service's wasteful usage. Be savage and funny."
+    )
 
 
 class SpendingAnalysis(BaseModel):

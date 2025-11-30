@@ -116,6 +116,12 @@ def create_money_spender_agent(
         "  - duration_used: STRING - How long the service ran (e.g., '30 days', '15 days', 'entire timeline')\n"
         "  - usage_pattern: STRING - How it's used (e.g., 'Running 24/7', 'Intermittent')\n"
         "  - waste_factor: STRING - Why it's wasteful\n"
+        "  - roast: STRING - A brutal, creative one or two-liner roast specifically for THIS service's wasteful usage. "
+        "CRITICAL: Each service roast MUST be unique and different. Use varied insults, metaphors, and humor. "
+        "Don't repeat the same joke pattern. Examples: 'Using CloudFront for internal apps? That's like hiring a "
+        "limo to drive to your bathroom.', 'Running EKS for a single container? Congratulations, you've built a "
+        "747 to deliver a pizza.', 'S3 Glacier with constant retrievals? You've invented the world's most expensive "
+        "filing cabinet.'\n"
         "- total_calculated_cost: FLOAT - Sum of all service costs in dollars\n"
         "- deployment_scenario: STRING - Detailed narrative of what happened\n"
         "- key_mistakes: ARRAY of STRINGS - 3-5 key mistakes\n"
@@ -174,7 +180,8 @@ def format_spending_analysis(analysis: SpendingAnalysis) -> str:
             f"     Unit Cost: ${service.unit_cost:.4f}\n"
             f"     Total Cost: ${service.total_cost:.2f}\n"
             f"     Usage: {service.usage_pattern}\n"
-            f"     Waste Factor: {service.waste_factor}"
+            f"     Waste Factor: {service.waste_factor}\n"
+            f"     🔥 Roast: {service.roast}"
         )
 
     # Format key mistakes
