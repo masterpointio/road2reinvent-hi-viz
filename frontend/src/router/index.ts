@@ -31,7 +31,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/app',
     component: AppLayout,
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'dashboard',
@@ -94,11 +94,7 @@ router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuth()
 
   if (requiresAuth && !isAuthenticated.value) {
-    if (config.cognitoLoginUrl) {
-      window.location.href = config.cognitoLoginUrl
-    } else {
-      next('/login')
-    }
+    next('/login')
   } else {
     next()
   }

@@ -116,28 +116,40 @@ export const useAuth = () => {
     }
 
     if (code) {
-      if (config.apiBaseUrl) {
-        try {
-          const response = await fetch(`${config.apiBaseUrl}/auth/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code }),
-          });
+      const cognitoDomain = config.cognitoDomain;
+      const clientId = config.cognitoClientId;
+      const redirectUri = `${window.location.origin}/login-callback`;
 
-          if (!response.ok) {
-            throw new Error('Token exchange failed');
-          }
-
-          const data = await response.json();
-          storeTokens(data.access_token, data.id_token);
-          return;
-        } catch (error) {
-          console.error('Token exchange error:', error);
-          throw error;
-        }
+      if (!cognitoDomain || !clientId) {
+        throw new Error('Cognito configuration missing');
       }
 
-      throw new Error('API URL not configured for token exchange');
+      try {
+        const response = await fetch(`https://${cognitoDomain}/oauth2/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            code: code,
+            redirect_uri: redirectUri,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error_description || 'Token exchange failed');
+        }
+
+        const tokens = await response.json();
+        storeTokens(tokens.access_token, tokens.id_token);
+        return;
+      } catch (error) {
+        console.error('Token exchange error:', error);
+        throw error;
+      }
     }
 
     throw new Error('No authentication code or tokens found');
