@@ -3,30 +3,7 @@
     <nav class="app-layout__nav">
       <div class="app-layout__nav-content">
         <BillBurnerLogo size="compact" />
-        <nav class="app-layout__nav-links">
-          <router-link to="/app/dashboard" class="app-layout__nav-link">
-            🔥 Dashboard
-          </router-link>
-          <router-link to="/app/burn-config" class="app-layout__nav-link">
-            ⚙️ Configure Burn
-          </router-link>
-        </nav>
         <div class="app-layout__nav-actions">
-          <div class="app-layout__theme-menu">
-            <button class="app-layout__theme-btn" @click="toggleThemeMenu">
-              🎨
-            </button>
-            <div v-if="showThemeMenu" class="app-layout__theme-dropdown">
-              <button
-                v-for="theme in themes"
-                :key="theme.value"
-                :class="['app-layout__theme-item', { 'app-layout__theme-item--active': currentTheme === theme.value }]"
-                @click="selectTheme(theme.value)"
-              >
-                {{ theme.label }}
-              </button>
-            </div>
-          </div>
           <div class="app-layout__user-menu">
             <button class="app-layout__user-btn" @click="toggleUserMenu">
               👤
