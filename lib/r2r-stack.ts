@@ -10,11 +10,64 @@ import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as path from 'path';
 
 export class R2RStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Create GitHub OIDC Provider
+    const githubProvider = new iam.OpenIdConnectProvider(this, 'GitHubOIDCProvider', {
+      url: 'https://token.actions.githubusercontent.com',
+      clientIds: ['sts.amazonaws.com'],
+      thumbprints: ['6938fd4d98bab03faadb97b34396831e3780aea1'],
+    });
+
+    // Create IAM Role for GitHub Actions
+    const githubActionsRole = new iam.Role(this, 'GitHubActionsRole', {
+      roleName: 'GitHubActionsDeploymentRole',
+      assumedBy: new iam.FederatedPrincipal(
+        githubProvider.openIdConnectProviderArn,
+        {
+          StringEquals: {
+            'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+          },
+          StringLike: {
+            'token.actions.githubusercontent.com:sub': 'repo:masterpointio/*:*',
+          },
+        },
+        'sts:AssumeRoleWithWebIdentity'
+      ),
+      description: 'Role for GitHub Actions to deploy CDK stacks',
+      maxSessionDuration: cdk.Duration.hours(1),
+    });
+
+    // Grant permissions for CDK deployment
+    githubActionsRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('PowerUserAccess')
+    );
+
+    // Add IAM permissions for role management (PowerUserAccess doesn't include IAM)
+    githubActionsRole.addToPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'iam:CreateRole',
+          'iam:DeleteRole',
+          'iam:GetRole',
+          'iam:PassRole',
+          'iam:AttachRolePolicy',
+          'iam:DetachRolePolicy',
+          'iam:PutRolePolicy',
+          'iam:DeleteRolePolicy',
+          'iam:GetRolePolicy',
+          'iam:TagRole',
+          'iam:UntagRole',
+        ],
+        resources: ['*'],
+      })
+    );
 
     // Create Cognito User Pool
     const userPool = new cognito.UserPool(this, 'R2RUserPool', {
@@ -72,23 +125,22 @@ export class R2RStack extends cdk.Stack {
 
     // Create S3 bucket for frontend hosting
     const frontendBucket = new s3.Bucket(this, 'R2RFrontendBucket', {
-      bucketName: `r2r-frontend-${cdk.Aws.ACCOUNT_ID}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
-    // Create Route53 Hosted Zone
-    const hostedZone = new route53.HostedZone(this, 'R2RHostedZone', {
-      zoneName: 'wehavetoomuch.com',
+    // Import existing Route53 Hosted Zone
+    const hostedZone = route53.HostedZone.fromLookup(this, 'R2RHostedZone', {
+      domainName: 'wehavetoomuch.com',
     });
 
     // Create SSL Certificate for CloudFront (must be in us-east-1)
-    const certificate = new acm.Certificate(this, 'R2RCertificate', {
-      domainName: 'wehavetoomuch.com',
-      subjectAlternativeNames: ['*.wehavetoomuch.com'],
-      validation: acm.CertificateValidation.fromDns(hostedZone),
-    });
+    // const certificate = new acm.Certificate(this, 'R2RCertificate', {
+    //   domainName: 'wehavetoomuch.com',
+    //   subjectAlternativeNames: ['*.wehavetoomuch.com'],
+    //   validation: acm.CertificateValidation.fromDns(hostedZone),
+    // });
 
     // Create CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'R2RDistribution', {
@@ -97,8 +149,8 @@ export class R2RStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       },
-      domainNames: ['wehavetoomuch.com'],
-      certificate: certificate,
+      // domainNames: ['wehavetoomuch.com'],
+      // certificate: certificate,
       defaultRootObject: 'index.html',
       errorResponses: [
         {
@@ -141,16 +193,14 @@ export class R2RStack extends cdk.Stack {
 
     // Create Lambda function
     const helloWorldFunction = new lambda.NodejsFunction(this, 'HelloWorldFunction', {
-      functionName: 'hello-world',
       entry: path.join(__dirname, 'lambda', 'hello-world.ts'),
-      handler: 'handler',
-      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
+      runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
       bundling: {
         externalModules: ['aws-sdk'],
       },
     });
 
-    // Create API Gateway with Cognito Authorizer
+    // // Create API Gateway with Cognito Authorizer
     const api = new apigateway.RestApi(this, 'R2RApi', {
       restApiName: 'r2r-api',
       defaultCorsPreflightOptions: {
@@ -180,6 +230,7 @@ export class R2RStack extends cdk.Stack {
       destinationBucket: frontendBucket,
       distribution,
       distributionPaths: ['/*'],
+      memoryLimit: 1024
     });
 
     // Output the Hosted UI URL
@@ -218,24 +269,29 @@ export class R2RStack extends cdk.Stack {
       description: 'API Gateway URL',
     });
 
-    new cdk.CfnOutput(this, 'HostedZoneId', {
-      value: hostedZone.hostedZoneId,
-      description: 'Route53 Hosted Zone ID',
-    });
-
-    new cdk.CfnOutput(this, 'NameServers', {
-      value: cdk.Fn.join(', ', hostedZone.hostedZoneNameServers || []),
-      description: 'Route53 Name Servers',
-    });
+    // Note: Hosted Zone ID and Name Servers are not available when using fromLookup
+    // Check the Route53 console or use AWS CLI to view these values
 
     new cdk.CfnOutput(this, 'CustomDomainUrl', {
       value: 'https://wehavetoomuch.com',
       description: 'Custom Domain URL',
     });
 
-    new cdk.CfnOutput(this, 'CertificateArn', {
-      value: certificate.certificateArn,
-      description: 'ACM Certificate ARN',
+    // new cdk.CfnOutput(this, 'CertificateArn', {
+    //   value: certificate.certificateArn,
+    //   description: 'ACM Certificate ARN',
+    // });
+
+    // GitHub OIDC Outputs
+    new cdk.CfnOutput(this, 'GitHubActionsRoleArn', {
+      value: githubActionsRole.roleArn,
+      description: 'IAM Role ARN for GitHub Actions',
+      exportName: 'GitHubActionsRoleArn',
+    });
+
+    new cdk.CfnOutput(this, 'GitHubOIDCProviderArn', {
+      value: githubProvider.openIdConnectProviderArn,
+      description: 'GitHub OIDC Provider ARN',
     });
   }
 }
