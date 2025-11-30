@@ -112,8 +112,8 @@ export class R2RStack extends cdk.Stack {
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: ['http://localhost:3000/callback'],
-        logoutUrls: ['http://localhost:3000/logout'],
+        callbackUrls: ['http://localhost:5173/login-callback'],
+        logoutUrls: ['http://localhost:5173/login'],
       },
     });
 
@@ -182,14 +182,16 @@ export class R2RStack extends cdk.Stack {
     const userPoolClientCfn = userPoolClient.node
       .defaultChild as cognito.CfnUserPoolClient;
     userPoolClientCfn.callbackUrLs = [
-      'http://localhost:5173/callback',
-      `${cloudFrontUrl}/callback`,
-      `${customDomainUrl}/callback`,
+      'http://localhost:5173/login-callback',
+      'http://localhost:3000/login-callback',
+      `${cloudFrontUrl}/login-callback`,
+      `${customDomainUrl}/login-callback`,
     ];
     userPoolClientCfn.logoutUrLs = [
-      'http://localhost:5173/logout',
-      `${cloudFrontUrl}/logout`,
-      `${customDomainUrl}/logout`,
+      'http://localhost:5173/login',
+      'http://localhost:3000/login',
+      `${cloudFrontUrl}/login`,
+      `${customDomainUrl}/login`,
     ];
 
     // Create Lambda function
@@ -200,6 +202,31 @@ export class R2RStack extends cdk.Stack {
         externalModules: ['aws-sdk'],
       },
     });
+
+    // Create Burn Plan Lambda function
+    const burnPlanFunction = new lambda.NodejsFunction(this, 'BurnPlanFunction', {
+      entry: path.join(__dirname, 'lambda', 'burn-plan.ts'),
+      runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
+      timeout: cdk.Duration.seconds(29),
+      memorySize: 512,
+      environment: {
+        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+      },
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+      },
+    });
+
+    // Grant Lambda permission to invoke AgentCore agent runtime
+    burnPlanFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:InvokeAgentRuntime',
+        ],
+        resources: ['*'],
+      })
+    );
 
     // Create FastAPI Lambda function
     const fastapiFunction = new pythonLambda.Function(this, 'FastAPIFunction', {
@@ -265,6 +292,10 @@ export class R2RStack extends cdk.Stack {
     const proxyResource = apiResource.addResource('{proxy+}');
     proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(fastapiFunction));
 
+    // Add Burn Plan endpoint (not under /api)
+    const burnPlanResource = api.root.addResource('burn-plan');
+    burnPlanResource.addMethod('POST', new apigateway.LambdaIntegration(burnPlanFunction));
+
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
       sources: [s3deploy.Source.asset('./frontend/dist')],
@@ -313,6 +344,11 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'FastAPIUrl', {
       value: `${api.url}api/health`,
       description: 'FastAPI Health Check URL',
+    });
+
+    new cdk.CfnOutput(this, 'BurnPlanUrl', {
+      value: `${api.url}burn-plan`,
+      description: 'Burn Plan Endpoint URL',
     });
 
     // Note: Hosted Zone ID and Name Servers are not available when using fromLookup

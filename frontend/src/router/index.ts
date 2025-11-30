@@ -66,11 +66,7 @@ router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuth()
 
   if (requiresAuth && !isAuthenticated.value) {
-    if (config.cognitoLoginUrl) {
-      window.location.href = config.cognitoLoginUrl
-    } else {
-      next('/login')
-    }
+    next('/login')
   } else {
     next()
   }

@@ -10,7 +10,6 @@
     "predeploy": "npm run build:frontend",
     "deploy": "cdk deploy --require-approval never"
   },
-
   "devDependencies": {
     "@types/aws-lambda": "^8.10.159",
     "@types/jest": "^29.5.14",
@@ -23,6 +22,7 @@
     "typescript": "~5.9.3"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-agentcore": "^3.940.0",
     "aws-cdk-lib": "2.215.0",
     "constructs": "^10.0.0"
   }

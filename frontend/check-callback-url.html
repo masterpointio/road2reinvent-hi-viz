@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cognito Callback URL Checker</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .url-box {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin: 20px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .instructions {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+        code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔐 Cognito Callback URL Configuration</h1>
+        
+        <p>Your app is trying to use this callback URL:</p>
+        <div class="url-box" id="callbackUrl">Loading...</div>
+        
+        <div class="instructions">
+            <h3>📋 Steps to Fix redirect_mismatch Error:</h3>
+            <ol>
+                <li>Go to <strong>AWS Console</strong> → <strong>Cognito</strong></li>
+                <li>Select your User Pool</li>
+                <li>Go to <strong>App Integration</strong> → <strong>App clients</strong></li>
+                <li>Click on your app client: <code id="clientId">Loading...</code></li>
+                <li>Scroll to <strong>Hosted UI settings</strong></li>
+                <li>Under <strong>Allowed callback URLs</strong>, add:
+                    <div class="url-box" id="callbackUrlCopy" style="margin-top: 10px;">Loading...</div>
+                </li>
+                <li>Click <strong>Save changes</strong></li>
+                <li>Try logging in again</li>
+            </ol>
+        </div>
+
+        <h3>Common Callback URLs to Add:</h3>
+        <ul>
+            <li><strong>Local Development:</strong> <code>http://localhost:5173/login-callback</code></li>
+            <li><strong>Local (alternative port):</strong> <code>http://localhost:3000/login-callback</code></li>
+            <li><strong>Production:</strong> <code>https://yourdomain.com/login-callback</code></li>
+        </ul>
+
+        <p style="margin-top: 30px; color: #666; font-size: 14px;">
+            💡 <strong>Tip:</strong> You can add multiple callback URLs separated by commas in Cognito.
+        </p>
+    </div>
+
+    <script>
+        // Get the current callback URL
+        const callbackUrl = `${window.location.origin}/login-callback`;
+        document.getElementById('callbackUrl').textContent = callbackUrl;
+        document.getElementById('callbackUrlCopy').textContent = callbackUrl;
+        
+        // Try to get client ID from env (won't work in static HTML, but shows the pattern)
+        const clientId = 'Check your .env file for VITE_COGNITO_CLIENT_ID';
+        document.getElementById('clientId').textContent = clientId;
+    </script>
+</body>
+</html>

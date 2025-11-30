@@ -70,8 +70,67 @@ export const useAuth = () => {
     localStorage.removeItem('auth_token');
   };
 
+<<<<<<< HEAD
   const getAuthToken = (): string | null => {
     return accessToken.value;
+=======
+  const handleCallback = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    const code = urlParams.get('code');
+    const accessTokenParam = hashParams.get('access_token') || urlParams.get('access_token');
+    const idTokenParam = hashParams.get('id_token') || urlParams.get('id_token');
+    const error = urlParams.get('error');
+
+    if (error) {
+      throw new Error(urlParams.get('error_description') || 'Authentication failed');
+    }
+
+    if (accessTokenParam) {
+      storeTokens(accessTokenParam, idTokenParam || undefined);
+      return;
+    }
+
+    if (code) {
+      const cognitoDomain = config.cognitoDomain;
+      const clientId = config.cognitoClientId;
+      const redirectUri = `${window.location.origin}/login-callback`;
+
+      if (!cognitoDomain || !clientId) {
+        throw new Error('Cognito configuration missing');
+      }
+
+      try {
+        const response = await fetch(`https://${cognitoDomain}/oauth2/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: clientId,
+            code: code,
+            redirect_uri: redirectUri,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error_description || 'Token exchange failed');
+        }
+
+        const tokens = await response.json();
+        storeTokens(tokens.access_token, tokens.id_token);
+        return;
+      } catch (error) {
+        console.error('Token exchange error:', error);
+        throw error;
+      }
+    }
+
+    throw new Error('No authentication code or tokens found');
+>>>>>>> f9cd5c7eb3cf119e19d5cdf3765145e9c7274620
   };
 
   return {
