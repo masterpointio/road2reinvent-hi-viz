@@ -74,7 +74,8 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    redirect: '/app/dashboard',
+    name: 'landing',
+    component: () => import('../views/LandingView.vue'),
   },
 ]
 
