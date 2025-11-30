@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Interview Talking Points Generator",
+  "description": "Generates comprehensive live stream interview talking points for the hackathon project, analyzing what's built, what's interesting, and what makes great conversation",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze this hackathon project and generate comprehensive talking points for a live stream interview. Include:\n\n## THE STORY\n- What they're building (one exciting sentence)\n- Why it's hilarious or delightfully impractical\n- The most audacious technical choice\n\n## WHAT'S HAPPENING NOW\n- Current state (what's working vs. what's being built)\n- Completion reality check based on code\n- The most compelling technical challenge\n\n## TECHNICAL ARCHITECTURE\n- All AWS services used with brief explanations and creative/ridiculous usage\n- Most over-engineered component (explain what it does and why it's unnecessarily complex)\n- Data flow with analogies\n- Creative technical decisions (normal vs. what they did)\n\n## CONVERSATION STARTERS\n- Most demo-worthy feature\n- User journey (step-by-step)\n- The \"Wait, Really?\" moment\n- The chaos factor (riskiest part)\n- Abandoned attempts (commented code, unused deps, orphaned files)\n\n## DEVELOPMENT INSIGHTS\n- Time pressure adaptations and shortcuts\n- Technical learning moments for developers\n\nKeep it conversational and focus on what makes this project interesting to talk about on stream. Format as markdown with current date/time in title."
+  }
+}
