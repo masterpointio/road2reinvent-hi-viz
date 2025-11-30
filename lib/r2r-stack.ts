@@ -1,10 +1,15 @@
-import * as cdk from 'aws-cdk-lib/core';
+import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
+import * as path from 'path';
 
 export class R2RStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -72,6 +77,11 @@ export class R2RStack extends cdk.Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
+    // Create Route53 Hosted Zone
+    const hostedZone = new route53.HostedZone(this, 'R2RHostedZone', {
+      zoneName: 'wehavetoomuch.com',
+    });
+
     // Create CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'R2RDistribution', {
       defaultBehavior: {
@@ -94,6 +104,15 @@ export class R2RStack extends cdk.Stack {
       ],
     });
 
+    // Create A Record for CloudFront distribution
+    new route53.ARecord(this, 'R2RARecord', {
+      zone: hostedZone,
+      recordName: 'wehavetoomuch.com',
+      target: route53.RecordTarget.fromAlias(
+        new targets.CloudFrontTarget(distribution)
+      ),
+    });
+
     // Update User Pool Client with CloudFront URLs
     const cloudFrontUrl = `https://${distribution.distributionDomainName}`;
     const userPoolClientCfn = userPoolClient.node
@@ -106,6 +125,41 @@ export class R2RStack extends cdk.Stack {
       'http://localhost:5173/logout',
       `${cloudFrontUrl}/logout`,
     ];
+
+    // Create Lambda function
+    const helloWorldFunction = new lambda.NodejsFunction(this, 'HelloWorldFunction', {
+      functionName: 'hello-world',
+      entry: path.join(__dirname, 'lambda', 'hello-world.ts'),
+      handler: 'handler',
+      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
+      bundling: {
+        externalModules: ['aws-sdk'],
+      },
+    });
+
+    // Create API Gateway with Cognito Authorizer
+    const api = new apigateway.RestApi(this, 'R2RApi', {
+      restApiName: 'r2r-api',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', 'Authorization'],
+      },
+    });
+
+    const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(
+      this,
+      'CognitoAuthorizer',
+      {
+        cognitoUserPools: [userPool],
+      }
+    );
+
+    const helloResource = api.root.addResource('hello');
+    helloResource.addMethod('GET', new apigateway.LambdaIntegration(helloWorldFunction), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
 
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
@@ -144,6 +198,21 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'FrontendBucketName', {
       value: frontendBucket.bucketName,
       description: 'Frontend S3 Bucket Name',
+    });
+
+    new cdk.CfnOutput(this, 'ApiUrl', {
+      value: api.url,
+      description: 'API Gateway URL',
+    });
+
+    new cdk.CfnOutput(this, 'HostedZoneId', {
+      value: hostedZone.hostedZoneId,
+      description: 'Route53 Hosted Zone ID',
+    });
+
+    new cdk.CfnOutput(this, 'NameServers', {
+      value: cdk.Fn.join(', ', hostedZone.hostedZoneNameServers || []),
+      description: 'Route53 Name Servers',
     });
   }
 }
