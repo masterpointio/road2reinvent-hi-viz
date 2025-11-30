@@ -136,11 +136,11 @@ export class R2RStack extends cdk.Stack {
     });
 
     // Create SSL Certificate for CloudFront (must be in us-east-1)
-    // const certificate = new acm.Certificate(this, 'R2RCertificate', {
-    //   domainName: 'wehavetoomuch.com',
-    //   subjectAlternativeNames: ['*.wehavetoomuch.com'],
-    //   validation: acm.CertificateValidation.fromDns(hostedZone),
-    // });
+    const certificate = new acm.Certificate(this, 'R2RCertificate', {
+      domainName: 'wehavetoomuch.com',
+      subjectAlternativeNames: ['*.wehavetoomuch.com'],
+      validation: acm.CertificateValidation.fromDns(hostedZone),
+    });
 
     // Create CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'R2RDistribution', {
@@ -149,8 +149,8 @@ export class R2RStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       },
-      // domainNames: ['wehavetoomuch.com'],
-      // certificate: certificate,
+      domainNames: ['wehavetoomuch.com'],
+      certificate: certificate,
       defaultRootObject: 'index.html',
       errorResponses: [
         {
@@ -277,10 +277,10 @@ export class R2RStack extends cdk.Stack {
       description: 'Custom Domain URL',
     });
 
-    // new cdk.CfnOutput(this, 'CertificateArn', {
-    //   value: certificate.certificateArn,
-    //   description: 'ACM Certificate ARN',
-    // });
+    new cdk.CfnOutput(this, 'CertificateArn', {
+      value: certificate.certificateArn,
+      description: 'ACM Certificate ARN',
+    });
 
     // GitHub OIDC Outputs
     new cdk.CfnOutput(this, 'GitHubActionsRoleArn', {
