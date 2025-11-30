@@ -425,7 +425,7 @@ function generateMockBurnPlan(cfg: BurnConfig) {
   // Adjust based on burning style
   if (cfg.burningStyle === 'horizontal') {
     // Split resources into more smaller ones
-    const newResources = [];
+    const newResources: typeof resources = [];
     resources.forEach((r) => {
       const count = Math.floor(Math.random() * 3) + 2;
       for (let i = 0; i < count; i++) {

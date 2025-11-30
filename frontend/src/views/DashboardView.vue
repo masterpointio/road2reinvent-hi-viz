@@ -218,7 +218,7 @@ const neonColors = {
 const moneyChartOption = ref({
   backgroundColor: 'transparent',
   animationDuration: 2000,
-  animationEasing: 'cubicOut',
+  animationEasing: 'cubicOut' as const,
   grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
   xAxis: {
     type: 'category',
@@ -265,7 +265,7 @@ const moneyChartOption = ref({
 const topServicesOption = ref({
   backgroundColor: 'transparent',
   animationDuration: 2500,
-  animationEasing: 'cubicOut',
+  animationEasing: 'cubicOut' as const,
   animationDelay: (idx: number) => idx * 100,
   grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
   xAxis: {
@@ -392,7 +392,7 @@ const topServicesOption = ref({
 const pieChartOption = ref({
   backgroundColor: 'transparent',
   animationDuration: 2000,
-  animationEasing: 'elasticOut',
+  animationEasing: 'elasticOut' as const,
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(10, 10, 15, 0.9)',
@@ -453,7 +453,8 @@ const startNewBurn = () => {
 // Watch for amount changes and update charts
 watch(chartData, (newData) => {
   // Update racing bar chart
-  topServicesOption.value.series[0].data = newData.racingBarData.map((item, idx) => ({
+  if (topServicesOption.value.series[0]) {
+    topServicesOption.value.series[0].data = newData.racingBarData.map((item, idx) => ({
     value: item.value,
     itemStyle: {
       color: {
@@ -471,24 +472,30 @@ watch(chartData, (newData) => {
       shadowBlur: 15,
     },
   }));
+  }
   topServicesOption.value.yAxis.data = newData.racingBarData.map((item) => item.name);
 
   // Update pie chart
-  pieChartOption.value.series[0].data = newData.pieChartData.map((item, idx) => {
-    const colors = [neonColors.hiviz, neonColors.pink, neonColors.blue, neonColors.purple];
-    return {
-      ...item,
-      itemStyle: {
-        color: colors[idx % colors.length],
-        shadowColor: colors[idx % colors.length],
-        shadowBlur: 20,
-      },
-    };
-  });
+  if (pieChartOption.value.series[0]) {
+    pieChartOption.value.series[0].data = newData.pieChartData.map((item, idx) => {
+      const colors = [neonColors.hiviz, neonColors.pink, neonColors.blue, neonColors.purple];
+      const color = colors[idx % colors.length] || neonColors.hiviz;
+      return {
+        ...item,
+        itemStyle: {
+          color,
+          shadowColor: color,
+          shadowBlur: 20,
+        },
+      };
+    });
+  }
 
   // Update money chart
   moneyChartOption.value.xAxis.data = newData.timelineData.timestamps;
-  moneyChartOption.value.series[0].data = newData.timelineData.values;
+  if (moneyChartOption.value.series[0]) {
+    moneyChartOption.value.series[0].data = newData.timelineData.values;
+  }
 });
 </script>
 

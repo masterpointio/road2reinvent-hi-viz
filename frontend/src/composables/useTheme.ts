@@ -22,7 +22,10 @@ export function useTheme() {
   const cycleTheme = () => {
     const currentIndex = themes.indexOf(currentTheme.value)
     const nextIndex = (currentIndex + 1) % themes.length
-    setTheme(themes[nextIndex])
+    const nextTheme = themes[nextIndex]
+    if (nextTheme) {
+      setTheme(nextTheme)
+    }
   }
 
   const initTheme = () => {

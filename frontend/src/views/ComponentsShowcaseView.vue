@@ -209,7 +209,7 @@
             title="Failed to load data"
             message="There was a problem connecting to the server."
             retry-label="Try Again"
-            @retry="() => alert('Retry clicked')"
+            @retry="handleRetry"
           />
         </UiCard>
 
@@ -220,7 +220,7 @@
             message="Start by creating your first item."
             action-label="Create Item"
             icon="📦"
-            @action="() => alert('Action clicked')"
+            @action="handleAction"
           />
         </UiCard>
       </div>
@@ -317,6 +317,14 @@ const { info, success, warning, error } = useToasts();
 const handleModalConfirm = () => {
   alert('Modal confirmed!');
   showModal.value = false;
+};
+
+const handleRetry = () => {
+  alert('Retry clicked');
+};
+
+const handleAction = () => {
+  alert('Action clicked');
 };
 
 const showInfoToast = () => {
