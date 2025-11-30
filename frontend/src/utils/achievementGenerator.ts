@@ -1,64 +1,48 @@
+export interface Achievement {
+  title: string;
+  description: string;
+}
+
 /**
- * Generates snarky achievement text based on the burn amount
+ * Achievement titles with their snarky descriptions
  */
-export function generateAchievementText(amount: number): string {
-  const achievements = [
-    {
-      threshold: 1000,
-      messages: [
-        "Baby's First Burn! You've wasted $${amount} on AWS. That's like 200 coffees you'll never drink, but at least your Lambda functions are 'serverless'.",
-        "Congratulations! You spent $${amount} learning that 'free tier' doesn't mean 'free forever'. Your credit card company sends their regards.",
-        "Achievement Unlocked: $${amount} burned! That's enough to subscribe to Netflix for 5 years, but you chose NAT Gateways instead. Bold choice.",
-      ],
-    },
-    {
-      threshold: 5000,
-      messages: [
-        "Impressive! $${amount} down the drain. You could've bought a decent used car, but instead you got EC2 instances running at 3% CPU. Living the dream!",
-        "You've burned $${amount}! That's a nice vacation you're not taking because you forgot to turn off your RDS instances. Hope those logs were worth it.",
-        "$${amount} wasted! Your accountant called - they want to know why you need 47 load balancers for a todo app. We're wondering too.",
-      ],
-    },
-    {
-      threshold: 10000,
-      messages: [
-        "Holy overspending! $${amount} burned! You could've bought a luxury car, but instead you got 50 Kubernetes nodes running at 2% CPU. Your DevOps team is impressed by your commitment to waste.",
-        "Congratulations on burning $${amount}! That's enough to hire a junior developer for 3 months, but you chose SageMaker instances running 24/7 instead. Priorities!",
-        "$${amount} obliterated! You've achieved 'Enterprise Architect' level waste. Your CloudFront distribution for localhost is particularly inspired.",
-      ],
-    },
-    {
-      threshold: 25000,
-      messages: [
-        "LEGENDARY WASTE! $${amount} burned! You could've made a down payment on a house, but you chose to run AWS Ground Station for your weather app. Respect.",
-        "$${amount} incinerated! That's a year of college tuition, but instead you have multi-region active-active deployment for your personal blog. Chef's kiss.",
-        "You've torched $${amount}! Your CFO is crying, your CTO is confused, and AWS is sending you a thank-you card. This is art.",
-      ],
-    },
-    {
-      threshold: 50000,
-      messages: [
-        "ABSOLUTE MADNESS! $${amount} BURNED! You could've bought a Tesla, but you chose AWS Outposts for your cloud-native app. The irony is not lost on us.",
-        "$${amount} ANNIHILATED! That's a small business you could've started, but instead you have 200 idle EC2 instances. Your legacy will live forever in AWS billing history.",
-        "HALL OF FAME WASTE! $${amount} destroyed! You've transcended mere incompetence and achieved pure chaos. AWS named a data center after you.",
-      ],
-    },
-    {
-      threshold: Infinity,
-      messages: [
-        "COSMIC LEVEL DESTRUCTION! $${amount} VAPORIZED! You've achieved what we thought was impossible. AWS is considering making you a board member.",
-        "$${amount} OBLITERATED FROM EXISTENCE! Your spending has its own gravitational field. Scientists are studying your billing statements.",
-        "ULTIMATE ACHIEVEMENT! $${amount} BURNED! You've won AWS Bill Burner. There's nothing left to burn. Your name will be whispered in hushed tones at FinOps conferences.",
-      ],
-    },
-  ];
+const ACHIEVEMENT_TYPES: Achievement[] = [
+  {
+    title: 'Money Bonfire',
+    description:
+      "You've successfully turned your AWS budget into smoke and ashes. At least a real bonfire would've kept you warm.",
+  },
+  {
+    title: 'Cash Incinerator',
+    description:
+      "Congratulations! You've built the world's most expensive furnace. Your money went up in flames faster than a serverless cold start.",
+  },
+  {
+    title: 'Budget Arsonist',
+    description:
+      "You didn't just burn the budget - you doused it in gasoline and threw in a match. The finance team is calling the fire department.",
+  },
+  {
+    title: 'Spend Wrecker',
+    description:
+      "You've demolished spending limits with the precision of a wrecking ball. Your cost optimization strategy is 'what cost optimization?'",
+  },
+  {
+    title: "CFO's Worst Nightmare",
+    description:
+      "The CFO wakes up in cold sweats thinking about your AWS bill. You've achieved legendary status in the accounting department (not the good kind).",
+  },
+  {
+    title: "Finance's Enemy",
+    description:
+      "The finance team has your photo on a dartboard. You've single-handedly proven that cloud costs can indeed spiral out of control.",
+  },
+];
 
-  // Find the appropriate tier
-  const tier = achievements.find((a) => amount < a.threshold) || achievements[achievements.length - 1];
-
-  // Pick a random message from the tier
-  const message = tier.messages[Math.floor(Math.random() * tier.messages.length)];
-
-  // Replace ${amount} with the actual formatted amount
-  return message.replace('${amount}', amount.toLocaleString());
+/**
+ * Generates a random achievement with title and description
+ */
+export function generateRandomAchievement(): Achievement {
+  const randomIndex = Math.floor(Math.random() * ACHIEVEMENT_TYPES.length);
+  return ACHIEVEMENT_TYPES[randomIndex];
 }

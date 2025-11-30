@@ -6,6 +6,7 @@
           <div class="achievement-popup__glow"></div>
           <div class="achievement-popup__icon">🏆</div>
           <h2 class="achievement-popup__title">Achievement Unlocked!</h2>
+          <h3 class="achievement-popup__achievement-title">{{ achievementTitle }}</h3>
           <p class="achievement-popup__text">{{ achievementText }}</p>
           <div class="achievement-popup__amount">${{ amount.toLocaleString() }} Burned</div>
           <button class="achievement-popup__button" @click="handleAccept">
@@ -20,6 +21,7 @@
 <script setup lang="ts">
 interface Props {
   show: boolean;
+  achievementTitle: string;
   achievementText: string;
   amount: number;
 }
@@ -90,12 +92,20 @@ const handleAccept = () => {
 
 .achievement-popup__title {
   color: var(--color-primary);
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-sm);
   text-transform: uppercase;
   letter-spacing: 1px;
   text-shadow: 0 0 20px rgba(192, 255, 0, 0.5);
+}
+
+.achievement-popup__achievement-title {
+  color: var(--color-text);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
 .achievement-popup__text {

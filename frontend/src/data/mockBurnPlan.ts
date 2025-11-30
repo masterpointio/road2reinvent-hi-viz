@@ -84,6 +84,7 @@ export const mockBurnPlan: BurnPlanResponse = {
     'Optimize storage usage based on actual data needs',
   ],
   achievement: {
-    text: "Congratulations! You've burned enough money to buy a luxury car, but instead you got 50 Kubernetes nodes running at 2% CPU. Your DevOps team called - they're impressed by your commitment to waste.",
+    title: 'Budget Arsonist',
+    text: "You didn't just burn the budget - you doused it in gasoline and threw in a match. The finance team is calling the fire department.",
   },
 };

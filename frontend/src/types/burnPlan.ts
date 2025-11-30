@@ -8,8 +8,8 @@ export interface BurnPlanResponse {
   key_mistakes: string[];
   recommendations: string[];
   achievement?: {
+    title: string;
     text: string;
-    title?: string;
   };
 }
 

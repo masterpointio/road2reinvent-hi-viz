@@ -3,7 +3,10 @@
     <div v-if="show" class="achievement-card">
       <div class="achievement-card__header">
         <div class="achievement-card__icon">🏆</div>
-        <div class="achievement-card__title">Achievement Unlocked</div>
+        <div class="achievement-card__header-text">
+          <div class="achievement-card__label">Achievement Unlocked</div>
+          <div class="achievement-card__title">{{ achievementTitle }}</div>
+        </div>
       </div>
       <div class="achievement-card__content">
         <div class="achievement-card__text">{{ achievementText }}</div>
@@ -16,6 +19,7 @@
 <script setup lang="ts">
 interface Props {
   show: boolean;
+  achievementTitle: string;
   achievementText: string;
   amount: number;
 }
@@ -52,11 +56,25 @@ defineProps<Props>();
   animation: icon-float 3s ease-in-out infinite;
 }
 
+.achievement-card__header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.achievement-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .achievement-card__title {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-primary);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
