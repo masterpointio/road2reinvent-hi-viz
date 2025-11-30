@@ -7,6 +7,7 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as pythonLambda from 'aws-cdk-lib/aws-lambda';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
@@ -198,6 +199,27 @@ export class R2RStack extends cdk.Stack {
       bundling: {
         externalModules: ['aws-sdk'],
       },
+    });
+
+    // Create FastAPI Lambda function
+    const fastapiFunction = new pythonLambda.Function(this, 'FastAPIFunction', {
+      runtime: pythonLambda.Runtime.PYTHON_3_13,
+      handler: 'main.handler',
+      code: pythonLambda.Code.fromAsset(
+        path.join(__dirname, 'lambda', 'fastapi'),
+        {
+          bundling: {
+            image: pythonLambda.Runtime.PYTHON_3_13.bundlingImage,
+            command: [
+              'bash',
+              '-c',
+              'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output',
+            ],
+          },
+        }
+      ),
+      timeout: cdk.Duration.seconds(29),
+      memorySize: 512,
     });
 
     // // Create API Gateway with Cognito Authorizer

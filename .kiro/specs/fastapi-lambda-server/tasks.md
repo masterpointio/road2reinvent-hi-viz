@@ -8,7 +8,7 @@
   - Create `requirements.txt` with fastapi and mangum dependencies
   - _Requirements: 1.1, 1.3, 1.4, 4.1, 4.2_
 
-- [ ] 2. Update CDK stack to add FastAPI Lambda
+- [x] 2. Update CDK stack to add FastAPI Lambda
 
   - Add Lambda import statement to stack file
   - Create Lambda function with Python 3.13 runtime, 29s timeout, 512MB memory
