@@ -6,9 +6,9 @@ AWS Bill Burner is a satirical web application that simulates "burning" money on
 
 The system architecture follows a serverless pattern with:
 - **Frontend**: Vue 3 SPA with Pinia state management, Vue Router, and Apache ECharts for real-time chart rendering
-- **Backend**: Python Lambda functions for burn plan generation, status tracking, and roast commentary
+- **Backend**: Single Python Lambda function running FastAPI for all API endpoints (burn plan generation, status tracking, and roast commentary)
 - **Authentication**: AWS Cognito for user management
-- **AI Services**: Strands agent with agentcore for generating burn plans and commentary
+- **AI Services**: Strands agent with AgentCore SDK for generating burn plans and commentary
 - **Infrastructure**: AWS CDK for infrastructure as code, CloudFront for content delivery, S3 for static hosting
 
 The application is purely simulative - no actual AWS resources are provisioned during burns. All cost calculations are based on realistic AWS pricing data, but the "burning" is entirely virtual.
@@ -25,13 +25,9 @@ graph TB
     Cognito[Cognito User Pool]
     APIGW[API Gateway]
     
-    subgraph Lambda Functions
-        BurnPlan[Burn Plan Lambda<br/>Python]
-        BurnStatus[Burn Status Lambda<br/>Python]
-        Roast[Roast Lambda<br/>Python]
-    end
+    Lambda[FastAPI Lambda<br/>Python<br/>All Endpoints]
     
-    Strands[Strands Agent<br/>with agentcore]
+    Strands[Strands Agent<br/>via AgentCore SDK]
     DDB[DynamoDB<br/>Burn Sessions]
     
     User -->|HTTPS| CF
@@ -39,26 +35,23 @@ graph TB
     User -->|Auth| Cognito
     User -->|API Calls| APIGW
     APIGW -->|Cognito Authorizer| Cognito
-    APIGW --> BurnPlan
-    APIGW --> BurnStatus
-    APIGW --> Roast
-    BurnPlan -->|Generate Plan| Strands
-    Roast -->|Generate Commentary| Strands
-    BurnPlan -->|Store Session| DDB
-    BurnStatus -->|Read Session| DDB
+    APIGW -->|/api/*| Lambda
+    Lambda -->|Generate Plan| Strands
+    Lambda -->|Generate Commentary| Strands
+    Lambda -->|Store/Read Session| DDB
 ```
 
 ### Component Interaction Flow
 
 **Burn Plan Generation Flow:**
 1. User submits configuration form (amount, style, stupidity level, time horizon)
-2. Frontend sends POST /burn-plan with parameters
+2. Frontend sends POST /api/burn-plan with parameters
 3. API Gateway validates JWT token via Cognito Authorizer
-4. Burn Plan Lambda receives request
-5. Lambda invokes Strands agent with burn plan generation task and parameters
-6. Strands agent (using agentcore) generates structured burn plan JSON
-7. Lambda stores burn session in DynamoDB
-8. Lambda returns burn plan and session ID to frontend
+4. API Gateway routes request to FastAPI Lambda
+5. FastAPI endpoint handler invokes Strands agent with burn plan generation task and parameters
+6. Strands agent (using AgentCore SDK) generates structured burn plan JSON
+7. FastAPI handler stores burn session in DynamoDB
+8. FastAPI handler returns burn plan and session ID to frontend
 9. Frontend navigates to visualization page
 
 **Burn Visualization Flow:**
@@ -67,16 +60,17 @@ graph TB
 3. Charts update at regular intervals (e.g., every 100ms for smooth animation)
 4. Money remaining decreases according to burn plan timeline
 5. Resource allocation charts show services being "spun up"
-6. At spending milestones (25%, 50%, 75%, 100%), frontend calls POST /roast
-7. Roast Lambda invokes Strands agent to generate commentary
+6. At spending milestones (25%, 50%, 75%, 100%), frontend calls POST /api/roast
+7. FastAPI endpoint handler invokes Strands agent to generate commentary
 8. Commentary displays on visualization page
 
 **Status Tracking Flow:**
-1. Frontend periodically calls GET /burn-status with session ID
-2. Burn Status Lambda retrieves session from DynamoDB
-3. Lambda calculates current state based on elapsed time
-4. Lambda returns current spending, active resources, and progress
-5. Frontend updates charts if needed (for page refresh scenarios)
+1. Frontend periodically calls GET /api/burn-status with session ID
+2. API Gateway routes request to FastAPI Lambda
+3. FastAPI endpoint handler retrieves session from DynamoDB
+4. FastAPI handler calculates current state based on elapsed time
+5. FastAPI handler returns current spending, active resources, and progress
+6. Frontend updates charts if needed (for page refresh scenarios)
 
 ## Components and Interfaces
 
@@ -137,8 +131,64 @@ graph TB
 
 ### Backend Components
 
-#### 1. Burn Plan Lambda (Python)
-**File**: `lambda/burn-plan/handler.py`
+#### FastAPI Application Structure
+
+The backend is a single Lambda function running FastAPI with Mangum adapter for AWS Lambda integration.
+
+**File Structure**:
+```
+lambda/
+  api/
+    __init__.py
+    main.py              # FastAPI app initialization
+    dependencies.py      # Shared dependencies (auth, DB, AgentCore client)
+    models.py            # Pydantic models for request/response
+    routers/
+      __init__.py
+      burn_plan.py       # POST /api/burn-plan endpoint
+      burn_status.py     # GET /api/burn-status endpoint
+      roast.py           # POST /api/roast endpoint
+    services/
+      __init__.py
+      strands_service.py # Strands agent integration via AgentCore SDK
+      session_service.py # DynamoDB session management
+    utils/
+      __init__.py
+      agentcore_client.py # AgentCore SDK wrapper and utilities
+```
+
+#### FastAPI Application Entry Point
+
+**File**: `lambda/api/main.py`
+
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
+from .routers import burn_plan, burn_status, roast
+
+app = FastAPI(title="AWS Bill Burner API", version="1.0.0")
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(burn_plan.router, prefix="/api", tags=["burn-plan"])
+app.include_router(burn_status.router, prefix="/api", tags=["burn-status"])
+app.include_router(roast.router, prefix="/api", tags=["roast"])
+
+# Lambda handler using Mangum
+handler = Mangum(app)
+```
+
+#### 1. Burn Plan Endpoint (FastAPI)
+**File**: `lambda/api/routers/burn_plan.py`
 
 **Input**:
 ```python
@@ -171,27 +221,28 @@ graph TB
 ```
 
 **Logic**:
-1. Validate input parameters
-2. Construct Strands agent task with parameters:
+1. FastAPI dependency injection validates JWT token and extracts user ID
+2. Pydantic model validates input parameters
+3. Construct Strands agent task with parameters:
    - For "Horizontal": Request many small services
    - For "Vertical": Request few expensive services
    - Stupidity level affects absurdity (e.g., level 10 might suggest "100 NAT Gateways in a VPC with no subnets")
-3. Invoke Strands agent via agentcore with structured output format
-4. Parse and validate agent response
-5. Ensure total cost matches requested amount (±5% tolerance)
-6. Generate session ID (UUID)
-7. Store session in DynamoDB with TTL (24 hours)
-8. Return burn plan
+4. Invoke Strands agent via AgentCore SDK with structured output format
+5. Parse and validate agent response
+6. Ensure total cost matches requested amount (±5% tolerance)
+7. Generate session ID (UUID)
+8. Store session in DynamoDB with TTL (24 hours)
+9. Return burn plan with FastAPI response model
 
 **Strands Agent Integration**:
 - Agent task: "burn-plan-generator"
 - Temperature: 0.7 (for creativity)
 - Max tokens: 4000
 - Agent instructions include AWS service catalog and pricing guidelines
-- Uses agentcore for agent orchestration and execution
+- Uses AgentCore SDK for agent orchestration and execution
 
-#### 2. Burn Status Lambda (Python)
-**File**: `lambda/burn-status/handler.py`
+#### 2. Burn Status Endpoint (FastAPI)
+**File**: `lambda/api/routers/burn_status.py`
 
 **Input**:
 ```python
@@ -219,14 +270,16 @@ graph TB
 ```
 
 **Logic**:
-1. Retrieve session from DynamoDB
-2. Calculate elapsed time since session start
-3. Determine which resources are "active" based on timeline
-4. Calculate money burned and remaining
-5. Return current state
+1. FastAPI dependency injection validates JWT token
+2. Query parameter validation via Pydantic
+3. Retrieve session from DynamoDB
+4. Calculate elapsed time since session start
+5. Determine which resources are "active" based on timeline
+6. Calculate money burned and remaining
+7. Return current state with FastAPI response model
 
-#### 3. Roast Lambda (Python)
-**File**: `lambda/roast/handler.py`
+#### 3. Roast Endpoint (FastAPI)
+**File**: `lambda/api/routers/roast.py`
 
 **Input**:
 ```python
@@ -252,14 +305,62 @@ graph TB
    - Amount burned so far
    - Services being used
    - Stupidity level (affects roast severity)
-3. Invoke Strands agent via agentcore for commentary generation
+3. Invoke Strands agent via AgentCore SDK for commentary generation
 4. Return roast text
 
 **Strands Agent Integration**:
 - Agent task: "roast-generator"
 - Temperature: 0.9 (for maximum creativity)
 - Agent instructions: "You are a snarky AWS cost analyst who roasts people for wasting money. Compare costs to relatable items like burritos, coffee, or Netflix subscriptions. Be witty but not mean."
-- Uses agentcore for agent orchestration and execution
+- Uses AgentCore SDK for agent orchestration and execution
+
+#### 4. AgentCore SDK Utility
+
+**File**: `lambda/api/utils/agentcore_client.py`
+
+The AgentCore SDK utility provides a clean interface for interacting with Strands agents through the AgentCore SDK.
+
+**Class**: `AgentCoreClient`
+
+**Initialization**:
+```python
+class AgentCoreClient:
+    def __init__(self, api_key: str, endpoint: str):
+        self.api_key = api_key
+        self.endpoint = endpoint
+        self.client = agentcore.Client(api_key=api_key, endpoint=endpoint)
+```
+
+**Methods**:
+
+1. `generate_burn_plan(config: BurnConfig) -> BurnPlan`
+   - Constructs burn plan generation task
+   - Invokes Strands agent with appropriate parameters
+   - Parses and validates JSON response
+   - Returns structured BurnPlan object
+
+2. `generate_roast(context: RoastContext) -> str`
+   - Constructs roast generation task
+   - Invokes Strands agent with spending context
+   - Returns roast commentary text
+
+3. `_invoke_agent(task_name: str, instructions: str, parameters: dict) -> dict`
+   - Internal method for agent invocation
+   - Handles retries and error handling
+   - Logs agent interactions for debugging
+
+**Error Handling**:
+- Timeout errors (>30s) raise `AgentTimeoutError`
+- Invalid response format triggers retry (max 2 attempts)
+- Rate limiting raises `AgentRateLimitError` with retry-after info
+- Connection errors raise `AgentConnectionError`
+
+**Configuration**:
+- API key loaded from environment variable `AGENTCORE_API_KEY`
+- Endpoint URL loaded from environment variable `STRANDS_AGENT_ENDPOINT`
+- Default timeout: 30 seconds
+- Max retries: 2
+- Exponential backoff for retries
 
 ### Data Models
 
@@ -510,7 +611,7 @@ orrectness Properties
 - Invalid response format from agent triggers retry (max 2 attempts)
 - If agent returns plan with wrong total cost, Lambda adjusts resource costs proportionally
 - Rate limiting errors return 429 with retry-after header
-- Agentcore connection errors trigger fallback or retry logic
+- AgentCore SDK connection errors trigger fallback or retry logic
 
 **DynamoDB Error Handling:**
 - Conditional check failures (concurrent updates) return 409
@@ -541,7 +642,7 @@ orrectness Properties
 **Backend Unit Tests (pytest):**
 - Lambda handler input validation tests
 - Strands agent task construction tests
-- Agentcore integration tests (mocked)
+- AgentCore SDK integration tests (mocked)
 - DynamoDB query/put operation tests (mocked)
 - Cost calculation logic tests
 - Session management tests
@@ -585,7 +686,7 @@ Property-based testing will be used to verify universal properties across many r
 - Test with real DynamoDB (using test table)
 - Verify complete request/response cycles
 - Test authentication flow with Cognito
-- Test agentcore integration and agent task execution
+- Test AgentCore SDK integration and agent task execution
 
 **Frontend-Backend Integration:**
 - Test complete user flows from configuration to visualization
@@ -624,15 +725,16 @@ const burnSessionsTable = new dynamodb.Table(this, 'BurnSessionsTable', {
 });
 ```
 
-**2. Python Lambda Functions:**
+**2. FastAPI Lambda Function:**
 ```typescript
-// Burn Plan Lambda
-const burnPlanFunction = new lambda.Function(this, 'BurnPlanFunction', {
-  functionName: 'burn-plan',
+// Single FastAPI Lambda for all endpoints
+const apiFunction = new lambda.Function(this, 'ApiFunction', {
+  functionName: 'bill-burner-api',
   runtime: lambda.Runtime.PYTHON_3_11,
-  handler: 'handler.lambda_handler',
-  code: lambda.Code.fromAsset('lambda/burn-plan'),
+  handler: 'api.main.handler',
+  code: lambda.Code.fromAsset('lambda'),
   timeout: cdk.Duration.seconds(30),
+  memorySize: 512,
   environment: {
     SESSIONS_TABLE: burnSessionsTable.tableName,
     STRANDS_AGENT_ENDPOINT: process.env.STRANDS_AGENT_ENDPOINT || '',
@@ -641,29 +743,25 @@ const burnPlanFunction = new lambda.Function(this, 'BurnPlanFunction', {
 });
 
 // Grant permissions
-burnSessionsTable.grantReadWriteData(burnPlanFunction);
-// Note: Strands agent access is managed via API key, not IAM
+burnSessionsTable.grantReadWriteData(apiFunction);
+// Note: Strands agent access via AgentCore SDK is managed via API key, not IAM
 ```
 
 **3. API Gateway Routes:**
 ```typescript
-const burnPlanResource = api.root.addResource('burn-plan');
-burnPlanResource.addMethod('POST', 
-  new apigateway.LambdaIntegration(burnPlanFunction), {
+// Single proxy integration for all /api/* routes
+const apiResource = api.root.addResource('api');
+const proxyResource = apiResource.addResource('{proxy+}');
+
+proxyResource.addMethod('ANY', 
+  new apigateway.LambdaIntegration(apiFunction), {
   authorizer: cognitoAuthorizer,
   authorizationType: apigateway.AuthorizationType.COGNITO,
 });
 
-const burnStatusResource = api.root.addResource('burn-status');
-burnStatusResource.addMethod('GET', 
-  new apigateway.LambdaIntegration(burnStatusFunction), {
-  authorizer: cognitoAuthorizer,
-  authorizationType: apigateway.AuthorizationType.COGNITO,
-});
-
-const roastResource = api.root.addResource('roast');
-roastResource.addMethod('POST', 
-  new apigateway.LambdaIntegration(roastFunction), {
+// Also handle /api directly
+apiResource.addMethod('ANY',
+  new apigateway.LambdaIntegration(apiFunction), {
   authorizer: cognitoAuthorizer,
   authorizationType: apigateway.AuthorizationType.COGNITO,
 });
@@ -689,12 +787,15 @@ Add to `frontend/package.json`:
 
 ### Backend Dependencies
 
-Create `lambda/burn-plan/requirements.txt`:
+Create `lambda/requirements.txt`:
 ```
+fastapi>=0.104.0
+mangum>=0.17.0
 boto3>=1.34.0
+pydantic>=2.5.0
+agentcore>=1.0.0
 hypothesis>=6.92.0
 pytest>=7.4.0
-agentcore>=1.0.0
 requests>=2.31.0
 ```
 
@@ -711,7 +812,7 @@ requests>=2.31.0
 
 2. **Lambda Package:**
    ```bash
-   cd lambda/burn-plan
+   cd lambda
    pip install -r requirements.txt -t .
    zip -r function.zip .
    ```
@@ -734,7 +835,7 @@ VITE_COGNITO_DOMAIN=<from CDK output>
 **Lambda Environment Variables:**
 - `SESSIONS_TABLE`: DynamoDB table name
 - `STRANDS_AGENT_ENDPOINT`: Strands agent API endpoint URL
-- `AGENTCORE_API_KEY`: API key for agentcore authentication
+- `AGENTCORE_API_KEY`: API key for AgentCore SDK authentication
 - `AWS_REGION`: Deployment region
 
 ### Monitoring
@@ -750,14 +851,14 @@ VITE_COGNITO_DOMAIN=<from CDK output>
 - API Gateway 5xx rate > 1%
 - DynamoDB throttling events
 - Strands agent timeout rate > 10%
-- Agentcore connection failures
+- AgentCore SDK connection failures
 
 **Cost Monitoring:**
 - Strands agent API costs (primary cost driver)
 - Lambda execution costs
 - DynamoDB costs
 - CloudFront/S3 costs
-- Agentcore usage costs
+- AgentCore SDK usage costs
 
 ## Security Considerations
 
@@ -784,7 +885,7 @@ VITE_COGNITO_DOMAIN=<from CDK output>
 - Agent task instructions constrain AI output to safe, appropriate content
 - AI responses validated for structure before returning to frontend
 - No user input directly passed to agent without sanitization
-- Agentcore provides additional safety guardrails
+- AgentCore SDK provides additional safety guardrails
 
 ## Performance Considerations
 
@@ -799,7 +900,7 @@ VITE_COGNITO_DOMAIN=<from CDK output>
 - DynamoDB on-demand billing for cost efficiency
 - Strands agent streaming responses (if supported) for faster perceived performance
 - API Gateway caching for burn-status endpoint (5-second TTL)
-- Agentcore connection pooling for reduced latency
+- AgentCore SDK connection pooling for reduced latency
 
 **Scalability:**
 - Serverless architecture scales automatically

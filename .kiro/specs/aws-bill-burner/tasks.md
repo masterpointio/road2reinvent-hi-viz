@@ -1,16 +1,18 @@
 # Implementation Plan: AWS Bill Burner
 
-- [ ] 1. Set up Strands agent infrastructure and agentcore integration
-  - Create Strands agent configuration for burn-plan-generator task
-  - Create Strands agent configuration for roast-generator task
-  - Set up agentcore client library and authentication
-  - Configure agent instructions and output formats
-  - _Requirements: 3.1, 3.2, 5.1, 5.2_
+- [ ] 1. Set up FastAPI application structure and AgentCore SDK integration
+  - Create FastAPI application with Mangum adapter for Lambda
+  - Set up project structure with routers, services, and utilities
+  - Create AgentCore SDK client wrapper utility
+  - Configure Strands agent tasks for burn-plan-generator and roast-generator
+  - Set up AgentCore SDK authentication and connection handling
+  - _Requirements: 3.1, 3.2, 5.1, 5.2, 7.6_
 
-- [ ]* 1.1 Write unit tests for agentcore client wrapper
+- [ ]* 1.1 Write unit tests for AgentCore SDK client wrapper
   - Test connection handling and error cases
   - Test task invocation with various parameters
   - Test response parsing and validation
+  - Test retry logic and timeout handling
   - _Requirements: 3.1, 3.2_
 
 - [ ] 2. Implement DynamoDB burn session storage
@@ -29,9 +31,10 @@
   - Test TTL expiration handling
   - _Requirements: 7.2_
 
-- [ ] 3. Implement Burn Plan Lambda function
-  - Create Lambda handler with input validation
-  - Implement Strands agent integration for burn plan generation
+- [ ] 3. Implement Burn Plan endpoint in FastAPI
+  - Create FastAPI router for POST /api/burn-plan
+  - Implement Pydantic models for request/response validation
+  - Implement Strands agent integration via AgentCore SDK for burn plan generation
   - Implement cost calculation and validation logic
   - Implement session creation and storage
   - Add error handling for all failure scenarios
@@ -49,14 +52,16 @@
   - **Property 9: Vertical style produces fewer expensive resources**
   - **Validates: Requirements 3.5**
 
-- [ ]* 3.4 Write unit tests for burn plan Lambda
-  - Test input validation (amount, style, stupidity level)
+- [ ]* 3.4 Write unit tests for burn plan endpoint
+  - Test Pydantic model validation (amount, style, stupidity level)
   - Test error responses for invalid inputs
   - Test session ID generation
+  - Test FastAPI endpoint routing
   - _Requirements: 2.2, 2.3, 2.4, 7.4_
 
-- [ ] 4. Implement Burn Status Lambda function
-  - Create Lambda handler for status retrieval
+- [ ] 4. Implement Burn Status endpoint in FastAPI
+  - Create FastAPI router for GET /api/burn-status
+  - Implement Pydantic models for query parameters and response
   - Implement session lookup from DynamoDB
   - Implement current state calculation based on elapsed time
   - Implement active resources filtering logic
@@ -71,15 +76,17 @@
   - **Property 16: Simulation uses plan data not actual resources**
   - **Validates: Requirements 6.2**
 
-- [ ]* 4.3 Write unit tests for burn status Lambda
+- [ ]* 4.3 Write unit tests for burn status endpoint
   - Test status calculation at various time points
   - Test error handling for invalid session IDs
   - Test progress calculation (0.0 to 1.0)
+  - Test FastAPI query parameter validation
   - _Requirements: 7.2, 7.4_
 
-- [ ] 5. Implement Roast Lambda function
-  - Create Lambda handler for roast generation
-  - Implement Strands agent integration for commentary
+- [ ] 5. Implement Roast endpoint in FastAPI
+  - Create FastAPI router for POST /api/roast
+  - Implement Pydantic models for request/response
+  - Implement Strands agent integration via AgentCore SDK for commentary
   - Implement context retrieval from DynamoDB
   - Add error handling and fallback logic
   - _Requirements: 5.1, 5.3, 7.3_
@@ -88,20 +95,21 @@
   - **Property 19: Roast API returns commentary**
   - **Validates: Requirements 7.3**
 
-- [ ]* 5.2 Write unit tests for roast Lambda
+- [ ]* 5.2 Write unit tests for roast endpoint
   - Test roast generation with various spending levels
   - Test error handling for agent failures
   - Test response format validation
+  - Test FastAPI request body validation
   - _Requirements: 5.1, 7.3, 7.4_
 
 - [ ] 6. Update CDK stack with all infrastructure
   - Add DynamoDB table for burn sessions
-  - Add all three Lambda functions with proper IAM roles
-  - Add API Gateway routes for /burn-plan, /burn-status, /roast
+  - Add single FastAPI Lambda function with proper IAM roles
+  - Add API Gateway proxy integration for /api/* routes
   - Configure Cognito authorizer for all endpoints
-  - Add environment variables for Strands agent configuration
-  - Configure CORS for all API endpoints
-  - _Requirements: 1.1, 7.1, 7.2, 7.3, 7.5_
+  - Add environment variables for AgentCore SDK and Strands agent configuration
+  - Configure CORS via FastAPI middleware
+  - _Requirements: 1.1, 7.1, 7.2, 7.3, 7.5, 7.6_
 
 - [ ]* 6.1 Write property test for CORS headers
   - **Property 21: CORS headers present on all responses**
@@ -144,9 +152,9 @@
 
 - [ ] 9. Implement frontend API client
   - Create API client service with Axios or Fetch
-  - Implement POST /burn-plan endpoint call
-  - Implement GET /burn-status endpoint call
-  - Implement POST /roast endpoint call
+  - Implement POST /api/burn-plan endpoint call
+  - Implement GET /api/burn-status endpoint call
+  - Implement POST /api/roast endpoint call
   - Add JWT token handling from Cognito
   - Add error handling and retry logic
   - _Requirements: 2.5, 7.1, 7.2, 7.3_
@@ -319,10 +327,11 @@
 - [ ] 22. Integration testing and end-to-end validation
   - Test complete flow from configuration to visualization
   - Test authentication flow with real Cognito
-  - Test API integration with deployed backend
+  - Test FastAPI endpoints with deployed backend
+  - Test API Gateway proxy integration
   - Verify neon aesthetic consistency across all pages
   - Test responsive design on different screen sizes
-  - _Requirements: 1.1, 2.1, 4.1, 9.1_
+  - _Requirements: 1.1, 2.1, 4.1, 7.6, 9.1_
 
 - [ ]* 22.1 Write integration tests for user flows
   - Test login → configuration → visualization flow
@@ -331,12 +340,12 @@
   - _Requirements: 1.1, 1.4, 2.1, 4.1_
 
 - [ ] 23. Deploy and configure production environment
-  - Deploy CDK stack to AWS
-  - Configure Strands agent endpoint and API keys
-  - Update frontend environment variables
+  - Deploy CDK stack to AWS with FastAPI Lambda
+  - Configure AgentCore SDK credentials and Strands agent endpoint
+  - Update frontend environment variables with API Gateway URL
   - Deploy frontend to S3/CloudFront
   - Verify all CloudWatch alarms are configured
-  - Test production deployment end-to-end
+  - Test production deployment end-to-end with all FastAPI endpoints
   - _Requirements: All_
 
 - [ ] 24. Final checkpoint - Production validation

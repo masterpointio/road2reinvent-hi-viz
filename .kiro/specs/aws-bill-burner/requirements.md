@@ -13,7 +13,8 @@ AWS Bill Burner is a satirical web application developed by Team Hi-Viz that vis
 - **Roast Commentary**: AI-generated snarky remarks about the user's spending choices
 - **Burn Visualization**: Real-time animated charts displaying money consumption and resource allocation
 - **User**: An authenticated individual interacting with the Bill Burner System
-- **Strands Agent**: AI agent system using agentcore for generating burn plans and commentary
+- **Strands Agent**: AI agent system using AgentCore SDK for generating burn plans and commentary
+- **AgentCore SDK**: Python library for interacting with Strands agents and managing agent tasks
 - **Cognito Service**: AWS authentication service managing user identity
 - **Team Hi-Viz**: The development team creating the Bill Burner System
 - **Neon Aesthetic**: A visual design style featuring bright, glowing colors and high-contrast elements characteristic of neon lighting
@@ -38,7 +39,7 @@ AWS Bill Burner is a satirical web application developed by Team Hi-Viz that vis
 #### Acceptance Criteria
 
 1. WHEN a user accesses the configuration form THEN the Bill Burner System SHALL display input fields for amount, burning style, stupidity level, and optional time horizon
-2. WHEN a user enters a monetary amount THEN the Bill Burner System SHALL validate that the amount is a positive number
+2. WHEN a user enters a monetary amount THEN the Bill Burner System SHALL validate that the amount is a number greater than zero
 3. WHEN a user selects a burning style THEN the Bill Burner System SHALL accept either "Horizontal" or "Vertical" as valid options
 4. WHEN a user adjusts the stupidity level slider THEN the Bill Burner System SHALL capture values between minimum ("Mildly Dumb") and maximum ("Brain Damage")
 5. WHEN a user submits the configuration form THEN the Bill Burner System SHALL send the parameters to the backend for burn plan generation
@@ -54,7 +55,7 @@ AWS Bill Burner is a satirical web application developed by Team Hi-Viz that vis
 3. WHEN the stupidity level is set to maximum THEN the Strands Agent SHALL generate more absurd and expensive resource combinations
 4. WHEN the burning style is "Horizontal" THEN the Strands Agent SHALL generate plans with many small-cost resources
 5. WHEN the burning style is "Vertical" THEN the Strands Agent SHALL generate plans with fewer high-cost resources
-6. WHEN the total cost in the burn plan is calculated THEN the Bill Burner System SHALL ensure it matches the user-specified amount within acceptable tolerance
+6. WHEN the total cost in the burn plan is calculated THEN the Bill Burner System SHALL ensure the sum matches the user-specified amount within five percent tolerance
 
 ### Requirement 4
 
@@ -86,10 +87,10 @@ AWS Bill Burner is a satirical web application developed by Team Hi-Viz that vis
 
 #### Acceptance Criteria
 
-1. WHEN the Bill Burner System generates a burn plan THEN the Bill Burner System SHALL NOT provision actual AWS resources
+1. WHEN the Bill Burner System generates a burn plan THEN the Bill Burner System SHALL use simulated data without provisioning actual AWS resources
 2. WHEN the burn simulation runs THEN the Bill Burner System SHALL calculate resource consumption based on the generated plan data
-3. WHEN displaying costs THEN the Bill Burner System SHALL use realistic AWS pricing for accuracy
-4. WHEN the simulation completes THEN the Bill Burner System SHALL have incurred zero actual AWS resource costs beyond the application infrastructure
+3. WHEN displaying costs THEN the Bill Burner System SHALL use realistic AWS pricing data with accuracy within ten percent of published rates
+4. WHEN the simulation completes THEN the Bill Burner System SHALL report zero actual AWS resource costs beyond the application infrastructure costs
 
 ### Requirement 7
 
@@ -97,11 +98,12 @@ AWS Bill Burner is a satirical web application developed by Team Hi-Viz that vis
 
 #### Acceptance Criteria
 
-1. WHEN the frontend sends a POST request to /burn-plan with configuration parameters THEN the Bill Burner System SHALL return a structured burn plan JSON
-2. WHEN the frontend sends a GET request to /burn-status THEN the Bill Burner System SHALL return the current simulation state
-3. WHEN the frontend sends a POST request to /roast with current spending data THEN the Bill Burner System SHALL return AI-generated commentary
+1. WHEN the frontend sends a POST request to /api/burn-plan with configuration parameters THEN the Bill Burner System SHALL return a structured burn plan JSON
+2. WHEN the frontend sends a GET request to /api/burn-status THEN the Bill Burner System SHALL return the current simulation state
+3. WHEN the frontend sends a POST request to /api/roast with current spending data THEN the Bill Burner System SHALL return AI-generated commentary
 4. WHEN API requests fail THEN the Bill Burner System SHALL return appropriate HTTP error codes and error messages
 5. WHEN API responses are sent THEN the Bill Burner System SHALL include proper CORS headers for frontend access
+6. WHEN the Bill Burner System receives multiple concurrent API requests THEN the Bill Burner System SHALL handle all requests through a single application instance
 
 ### Requirement 8
 
