@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Entertainment Excellence Scorer",
+  "description": "Automatically evaluates project presentations for entertainment excellence (max 25 points) based on creativity, humor, wow factor, and memorability when demo or presentation files are modified",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the modified files and evaluate them for ENTERTAINMENT EXCELLENCE (max 25 points). Score based on:\n1. Creativity of the pitch and concept (how original and innovative)\n2. Humor and delight factor (ability to amuse or entertain)\n3. Wow factor and shock value (memorable moments that stand out)\n4. Overall presentation quality and engagement level\n\nProvide a score out of 25 points with detailed justification for each criterion. Be specific about what makes it entertaining or what could be improved to increase the entertainment value."
+  }
+}

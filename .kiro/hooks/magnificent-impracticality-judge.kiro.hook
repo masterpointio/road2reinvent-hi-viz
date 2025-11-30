@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Magnificent Impracticality Judge",
+  "description": "Evaluates every code change for its sheer ambition, over-the-top complexity, and wonderfully unnecessary nature. Awards points (max 40) based on the scale of ideas, audacity of execution, and breathtaking lack of common sense in the implementation.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the recent code changes and judge them on MAGNIFICENT IMPRACTICALITY. Award a score out of 40 points based on:\n\n1. **Sheer Ambition** (0-15 points): How audaciously over-the-top is this? Does it attempt to solve a simple problem with enterprise-grade complexity?\n\n2. **Wonderfully Unnecessary Complexity** (0-15 points): Is this beautifully, gloriously overcomplicated? Does it use 10 design patterns where 1 would do?\n\n3. **Breathtaking Lack of Common Sense** (0-10 points): Is this utterly impractical for real-world scenarios? Would any reasonable engineer question its existence?\n\nProvide:\n- A score breakdown for each category\n- Total score out of 40\n- A witty commentary celebrating the magnificent impracticality (or lamenting its boring practicality)\n- Suggestions on how to make it MORE magnificently impractical\n\nBe entertaining, sarcastic, and celebrate the absurd!"
+  }
+}

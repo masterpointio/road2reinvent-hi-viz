@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Pointless Problem Solver",
+  "description": "Monitors README.md files for edits and triggers an AI agent to analyze whether the changes represent an elegant solution to a problem that never existed, or excessive technical sophistication applied to trivial matters. Evaluates the pointlessness quotient and awards up to 35 points based on how much unnecessary complexity was introduced.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A README file has been edited. Your task is to evaluate this change for the \"Pointless Problem Solving\" category (max 35 points). Analyze whether this represents: 1) An elegant solution to a problem that never existed, 2) Excessive effort applied to something already solved by simpler means, 3) Technical sophistication tackling a trivial or self-imposed hurdle. Review the file changes and award points (0-35) based on the level of unnecessary complexity, over-engineering, or solving non-existent problems. Provide a witty commentary on the pointlessness achieved."
+  }
+}
