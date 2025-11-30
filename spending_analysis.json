@@ -1,0 +1,100 @@
+{
+  "total_amount": "$15000",
+  "timeline_days": 45,
+  "efficiency_level": "Brain damage",
+  "architecture_type": "kubernetes",
+  "burning_style": "horizontal",
+  "services_deployed": [
+    {
+      "service_name": "EKS",
+      "instance_type": "m5.2xlarge",
+      "quantity": 10,
+      "unit_cost": 0.408,
+      "total_cost": 734.4,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Over-provisioned instances for a simple microservice"
+    },
+    {
+      "service_name": "AWS Fargate",
+      "instance_type": "FARGATE_SPOT",
+      "quantity": 50,
+      "unit_cost": 0.0408,
+      "total_cost": 1836.0,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Using Fargate Spot for a simple cron job"
+    },
+    {
+      "service_name": "AWS Outposts",
+      "instance_type": "outpost-server",
+      "quantity": 2,
+      "unit_cost": 1.0,
+      "total_cost": 450.0,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Using AWS Outposts for a cloud-native application"
+    },
+    {
+      "service_name": "AWS Batch",
+      "instance_type": "c6g.2xlarge",
+      "quantity": 10,
+      "unit_cost": 0.408,
+      "total_cost": 1836.0,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Using Batch for minimal workloads"
+    },
+    {
+      "service_name": "AWS Transfer Family",
+      "instance_type": "transfer-server",
+      "quantity": 10,
+      "unit_cost": 0.05,
+      "total_cost": 225.0,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Using Transfer Family when S3 would suffice"
+    },
+    {
+      "service_name": "AWS Elemental MediaLive",
+      "instance_type": "medialive-server",
+      "quantity": 5,
+      "unit_cost": 1.0,
+      "total_cost": 500.0,
+      "start_day": 0,
+      "end_day": 45,
+      "duration_used": "entire timeline",
+      "usage_pattern": "Running 24/7",
+      "waste_factor": "Running MediaLive for static content"
+    }
+  ],
+  "total_calculated_cost": 7251.0,
+  "deployment_scenario": "The deployment scenario likely involves a team that has taken a 'Brain damage' approach to cloud architecture. They have deployed a Kubernetes cluster using EKS with over-provisioned m5.2xlarge instances, running Fargate Spot for a simple cron job, using AWS Outposts for a cloud-native application, running AWS Batch for minimal workloads, using AWS Transfer Family when S3 would suffice, and running AWS Elemental MediaLive for static content. This setup is indicative of a team that has misunderstood the requirements and is using the most expensive and complex services available for basic tasks.",
+  "key_mistakes": [
+    "Over-provisioning instances for a simple microservice",
+    "Using Fargate Spot for a simple cron job",
+    "Using AWS Outposts for a cloud-native application",
+    "Using AWS Batch for minimal workloads",
+    "Using AWS Transfer Family when S3 would suffice",
+    "Running AWS Elemental MediaLive for static content"
+  ],
+  "recommendations": [
+    "Right-size instances based on actual workload requirements",
+    "Use EC2 instances instead of Fargate Spot for simple cron jobs",
+    "Avoid using AWS Outposts for cloud-native applications",
+    "Use simpler and more cost-effective services for minimal workloads",
+    "Use S3 instead of AWS Transfer Family for file transfers",
+    "Avoid using AWS Elemental MediaLive for static content"
+  ],
+  "roast": "You've taken 'Brain damage' to a whole new level. Over-provisioning instances, using Fargate Spot for a cron job, deploying Outposts for a cloud-native app, and running MediaLive for static content? It's like using a sledgehammer to crack a nut. Your cloud bill is a testament to your lack of understanding of cost-effective cloud architecture. Maybe next time, try to match the complexity of your services to the actual needs of your applications."
+}
