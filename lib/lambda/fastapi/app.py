@@ -35,3 +35,17 @@ def health_check() -> HealthResponse:
     agentcore_configured = bool(os.environ.get("AGENTCORE_AGENT_RUNTIME_ARN"))
 
     return HealthResponse(status="healthy", agentcore_configured=agentcore_configured)
+
+
+@app.get("/")
+def root():
+    """Root endpoint to verify API is working."""
+    return {
+        "message": "AWS Bill Burner API",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health",
+            "burn_plan": "/burn-plan (POST)",
+            "roast": "/roast (POST)"
+        }
+    }

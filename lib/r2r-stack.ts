@@ -232,7 +232,7 @@ export class R2RStack extends cdk.Stack {
         actions: [
           'bedrock-agentcore:InvokeAgentRuntime',
         ],
-        resources: ['arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-GIJFH89w3J'],
+        resources: ['*'],
       })
     );
 
