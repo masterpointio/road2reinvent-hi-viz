@@ -603,7 +603,8 @@ onMounted(() => {
     }));
     racingBarData.value.sort((a, b) => b.value - a.value);
     racingBarOption.value.yAxis.data = racingBarData.value.map((item) => item.name);
-    racingBarOption.value.series[0].data = racingBarData.value.map((item) => ({
+    if (racingBarOption.value.series[0]) {
+      racingBarOption.value.series[0].data = racingBarData.value.map((item) => ({
       value: item.value,
       itemStyle: {
         color: {
@@ -621,6 +622,7 @@ onMounted(() => {
         shadowBlur: 20,
       },
     }));
+    }
   }, 2000);
 });
 

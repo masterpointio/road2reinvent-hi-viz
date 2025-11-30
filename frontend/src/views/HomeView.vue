@@ -40,7 +40,7 @@ setInterval(() => {
     </div>
 
     <div class="fun-fact">
-      <p>💡 You could have bought {{ Math.floor(currentCost.value / 5) }} coffees instead</p>
+      <p>💡 You could have bought {{ Math.floor(currentCost / 5) }} coffees instead</p>
     </div>
   </div>
 </template>
