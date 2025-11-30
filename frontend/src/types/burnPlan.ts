@@ -7,6 +7,10 @@ export interface BurnPlanResponse {
   deployment_scenario: string;
   key_mistakes: string[];
   recommendations: string[];
+  achievement?: {
+    text: string;
+    title?: string;
+  };
 }
 
 export interface ServiceDeployment {

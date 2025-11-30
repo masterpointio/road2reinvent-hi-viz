@@ -1,5 +1,13 @@
 <template>
   <div class="dashboard">
+    <!-- Achievement Popup -->
+    <AchievementPopup
+      :show="showAchievementPopup"
+      :achievement-text="achievementText"
+      :amount="totalBurned"
+      @accept="handleAchievementAccept"
+    />
+
     <div class="dashboard__header">
       <div>
         <h1>AWS Bill Burner</h1>
@@ -141,6 +149,15 @@
           </div>
         </div>
       </UiCard>
+
+      <!-- Achievement Card -->
+      <div v-if="showAchievementCard" class="dashboard__card">
+        <AchievementCard
+          :show="showAchievementCard"
+          :achievement-text="achievementText"
+          :amount="totalBurned"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -163,6 +180,8 @@ import {
 } from 'echarts/components';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
+import AchievementPopup from '../components/AchievementPopup.vue';
+import AchievementCard from '../components/AchievementCard.vue';
 
 use([
   CanvasRenderer,
@@ -181,6 +200,19 @@ const router = useRouter();
 const currentAmount = ref(10000);
 const currentBurnPlan = computed(() => scaleBurnPlan(mockBurnPlan, currentAmount.value));
 const chartData = computed(() => convertToChartData(currentBurnPlan.value));
+
+// Achievement state
+const showAchievementPopup = ref(true);
+const showAchievementCard = ref(false);
+const achievementText = computed(() => {
+  return currentBurnPlan.value.achievement?.text || 
+    "You've successfully wasted money on AWS services that nobody asked for. Your CFO is crying, but at least your infrastructure is 'scalable'.";
+});
+
+const handleAchievementAccept = () => {
+  showAchievementPopup.value = false;
+  showAchievementCard.value = true;
+};
 
 // Dummy data for stats
 const totalBurned = computed(() => currentBurnPlan.value.total_calculated_cost);

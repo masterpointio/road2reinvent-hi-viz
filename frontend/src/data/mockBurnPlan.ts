@@ -83,4 +83,7 @@ export const mockBurnPlan: BurnPlanResponse = {
     'Use RDS instances only when needed and shut them down when not in use',
     'Optimize storage usage based on actual data needs',
   ],
+  achievement: {
+    text: "Congratulations! You've burned enough money to buy a luxury car, but instead you got 50 Kubernetes nodes running at 2% CPU. Your DevOps team called - they're impressed by your commitment to waste.",
+  },
 };
