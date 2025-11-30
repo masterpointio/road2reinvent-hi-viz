@@ -8,7 +8,7 @@
     "cdk": "cdk",
     "build:frontend": "cd frontend && npm i && npm run build",
     "predeploy": "npm run build:frontend",
-    "deploy": "cdk deploy"
+    "deploy": "cdk deploy --require-approval never"
   },
 
   "devDependencies": {
