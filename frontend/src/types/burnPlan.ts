@@ -1,3 +1,11 @@
+export interface PdfInvoice {
+  url: string;
+  s3_key: string;
+  bucket: string;
+  expiration_seconds: number;
+  upload_status: string;
+}
+
 export interface BurnPlanResponse {
   total_amount: string;
   timeline_days: number;
@@ -9,11 +17,17 @@ export interface BurnPlanResponse {
   deployment_scenario: string;
   key_mistakes: string[];
   recommendations: string[];
-  roast: string,
+  roast: string;
+  pdf_invoice?: PdfInvoice;
   achievement?: {
     title: string;
     text: string;
   };
+}
+
+export interface BurnPlanApiResponse {
+  analysis: BurnPlanResponse;
+  status: string;
 }
 
 export interface ServiceDeployment {

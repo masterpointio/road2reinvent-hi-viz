@@ -1,5 +1,30 @@
 <template>
   <div class="dashboard">
+    <!-- Download Report Modal -->
+    <UiModal
+      v-model="showDownloadModal"
+      title="Download Report for Your CFO"
+      :primary-action="{ label: isDownloading ? 'Downloading...' : 'Download PDF', onClick: handleDownloadReport }"
+      :secondary-action="{ label: 'Cancel', onClick: () => showDownloadModal = false }"
+      class="download-report-modal"
+    >
+      <div class="download-modal">
+        <div class="download-modal__icon">📊</div>
+        <p class="download-modal__text">
+          Time to face the music. This report contains all the gory details of your AWS spending spree,
+          formatted in a way that might make your CFO cry (or laugh, depending on their sense of humor).
+        </p>
+        <p class="download-modal__subtext">
+          Includes: Service breakdowns, timeline analysis, waste factors, our signature roasts, and suggestions on how you might pay your bill.
+          Perfect for explaining why the cloud bill looks like a phone number.
+        </p>
+        <div v-if="isDownloading" class="download-modal__spinner">
+          <UiSpinner size="lg" />
+          <span>Generating your financial horror story...</span>
+        </div>
+      </div>
+    </UiModal>
+
     <!-- Achievement Popup -->
     <AchievementPopup
       :show="showAchievementPopup"
@@ -29,9 +54,14 @@
             <button class="amount-adjuster__btn" @click="adjustAmount(1000)">+$1k</button>
           </div>
         </div>
-        <UiButton variant="primary" @click="startNewBurn">
-          🔥 Start New Burn
-        </UiButton>
+        <div class="dashboard__actions">
+          <button class="download-report-btn" @click="showDownloadModal = true">
+            📄 Download Report
+          </button>
+          <UiButton variant="primary" @click="startNewBurn">
+            🔥 Start New Burn
+          </UiButton>
+        </div>
       </div>
     </div>
 
@@ -203,8 +233,12 @@ import {
 } from 'echarts/components';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
+import UiModal from '../components/UiModal.vue';
+import UiSpinner from '../components/UiSpinner.vue';
 import AchievementPopup from '../components/AchievementPopup.vue';
 import AchievementCard from '../components/AchievementCard.vue';
+import { useApi } from '../composables/useApi';
+import { useToasts } from '../composables/useToasts';
 
 use([
   CanvasRenderer,
@@ -218,6 +252,8 @@ use([
 ]);
 
 const router = useRouter();
+const api = useApi();
+const { success: showSuccess, error: showError } = useToasts();
 
 // Recent burn plans
 const {
@@ -230,6 +266,10 @@ const {
 
 // Load burn plan from session storage or use mock
 const loadedBurnPlan = ref<BurnPlanResponse | null>(null);
+
+// Download modal state
+const showDownloadModal = ref(false);
+const isDownloading = ref(false);
 
 onMounted(async () => {
   const stored = sessionStorage.getItem('currentBurnPlan');
@@ -543,6 +583,35 @@ const startNewBurn = () => {
   router.push('/app/burn-config');
 };
 
+const handleDownloadReport = async () => {
+  if (!loadedBurnPlan.value) {
+    showError('No burn plan available to download');
+    return;
+  }
+
+  // Default fallback URL if pdf_invoice.url is not available
+  const DEFAULT_PDF_URL = 'https://aws-bill-invoices-demo.s3.amazonaws.com/invoices/20251130_155208_aws_bill.pdf?AWSAccessKeyId=ASIARVNLSYPUSBXALMMB&Signature=PyCDdA5w59vKzBsmFgdytOeUYy8%3D&x-amz-security-token=IQoJb3JpZ2luX2VjECgaCXVzLWVhc3QtMSJGMEQCIFhkUfZMHUYnmftR%2BE9ev6lIAhOedJqOxgi%2FWNdv3T4WAiBs3XfUEhejEXx504zG4bM1i%2FNBc7gYWzSUZKNfZPyuVSr7Agjx%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDExNDcxMzM0NzA0OSIMZMTMpVDQDfqStdELKs8CgbQs1mv221KYEZ%2BorB5UJrew4s74lJ8HDDrNMeYENm%2F%2B9MdMMW%2BsCTvSicUBhfcR14gnXsHmY3VuWBLWK3gnw75tSaArvK6dMzFEkQVAWvJ5b6DDdUbe2JsGmc10juH5fuHhIM6JGiZ%2BXywvkT83KQWxAeFzmuQsPBZnTwpTvHjv68IVBR%2FXnDcDxrI8q7NB7%2BRwyThhjshINk5U5AW9RooTPq%2BmFSJUyopFhFVG2nEUis4e1m0ipkqR0urzi2%2F%2FOhqD%2B5brsFVYduu6tPRMqNwjm%2BttSFUZvVbQAuLebz%2B2QcOTr71x%2BrVCBi9WGYIs2CfDG3OMmfs5gCjnpXyhNlOUnK7qdgXI17jRw%2Fyst%2FweE7qW87QO0lwudA0dvbcx7oImc0FczaRrGAU0MwCCki2%2FnMN3vJKNypu8VYTGPLNRBxOGaNQLAy9jtPLBtY8wjquzyQY6pgGzFwKK5I5ywSssPZMyqdh9%2BiQ3uqO2V%2FMmpCxD5zxtcRgT5DEdFAFMqoVGo0hZHeMF6E8S%2BSE4a%2F1QzoEiJAFhY0qryjG%2Fh7e1nboi6Y4pS%2BpCaPXCMKmL8CtYKFYt2hf4Ou5AzEccGP%2B%2FUqBQL4cbHYgBNQXTsYZQR2AdgV00z49dypJKvEvEEJL6sm7EKn74B3%2BD%2FNBDjFal5ffw1MxRtZ9kO49I&Expires=1764550329';
+
+  const downloadUrl = loadedBurnPlan.value.pdf_invoice?.url || DEFAULT_PDF_URL;
+
+  isDownloading.value = true;
+
+  try {
+    // Simulate a brief delay for UX (spinner animation)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Navigate to the pre-signed S3 URL to download the PDF
+    window.location.href = downloadUrl;
+    showSuccess('Report downloaded successfully!');
+    showDownloadModal.value = false;
+  } catch (error: any) {
+    console.error('Download error:', error);
+    showError(error.message || 'Failed to download report. Please try again.');
+  } finally {
+    isDownloading.value = false;
+  }
+};
+
 // Watch for amount changes and update charts
 watch(chartData, (newData) => {
   // Update racing bar chart
@@ -612,6 +681,11 @@ watch(chartData, (newData) => {
   flex-direction: column;
   gap: var(--space-md);
   align-items: flex-end;
+}
+
+.dashboard__actions {
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .amount-adjuster {
@@ -1016,5 +1090,192 @@ watch(chartData, (newData) => {
   .dashboard__card--featured {
     grid-column: 1 / -1;
   }
+}
+
+/* Download Report Button */
+.download-report-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, #FF006E 0%, #FF4D9E 100%);
+  border: 2px solid #FF006E;
+  border-radius: var(--border-radius-md);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.download-report-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.download-report-btn:hover {
+  background: linear-gradient(135deg, #FF4D9E 0%, #FF006E 100%);
+  border-color: #FF4D9E;
+  box-shadow: 0 0 30px rgba(255, 0, 110, 0.6), 0 0 60px rgba(255, 0, 110, 0.3), 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.download-report-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.download-report-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Download Modal */
+.download-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: center;
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.download-modal__icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-sm);
+  animation: pulse-pink 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 0, 110, 0.6));
+}
+
+@keyframes pulse-pink {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(255, 0, 110, 0.6));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 30px rgba(255, 0, 110, 0.8));
+  }
+}
+
+.download-modal__text {
+  font-size: 1.125rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 500;
+}
+
+.download-modal__subtext {
+  font-size: 0.9375rem;
+  color: #FF006E;
+  line-height: 1.6;
+  margin: 0;
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.1) 0%, rgba(255, 77, 158, 0.1) 100%);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid #FF006E;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.3), inset 0 0 20px rgba(255, 0, 110, 0.1);
+  font-weight: 500;
+}
+
+.download-modal__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  color: #FF006E;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.05) 0%, rgba(255, 77, 158, 0.05) 100%);
+  border-radius: var(--border-radius-lg);
+  border: 2px dashed #FF006E;
+  animation: glow-pink 1.5s ease-in-out infinite;
+}
+
+@keyframes glow-pink {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 110, 0.6);
+  }
+}
+
+/* Pink Modal Theme */
+.download-report-modal :deep(.ui-modal) {
+  border: 3px solid #FF006E;
+  box-shadow: 0 0 40px rgba(255, 0, 110, 0.5), 0 20px 60px rgba(0, 0, 0, 0.5);
+  background: var(--color-bg);
+}
+
+.download-report-modal :deep(.ui-modal__header) {
+  border-bottom: 2px solid #FF006E;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.1) 0%, rgba(255, 77, 158, 0.05) 100%);
+}
+
+.download-report-modal :deep(.ui-modal__title) {
+  color: #FF006E;
+  text-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+  font-weight: 700;
+}
+
+.download-report-modal :deep(.ui-modal__close) {
+  color: #FF006E;
+  transition: all 0.2s;
+}
+
+.download-report-modal :deep(.ui-modal__close:hover) {
+  background: rgba(255, 0, 110, 0.2);
+  color: #FF4D9E;
+  box-shadow: 0 0 15px rgba(255, 0, 110, 0.4);
+}
+
+.download-report-modal :deep(.ui-modal__actions) {
+  border-top: 2px solid #FF006E;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.05) 0%, rgba(255, 77, 158, 0.02) 100%);
+}
+
+.download-report-modal :deep(.ui-modal__actions button) {
+  transition: all 0.3s;
+}
+
+.download-report-modal :deep(.ui-modal__actions button:first-child) {
+  border: 2px solid #FF006E;
+  color: #FF006E;
+}
+
+.download-report-modal :deep(.ui-modal__actions button:first-child:hover) {
+  background: rgba(255, 0, 110, 0.1);
+  box-shadow: 0 0 15px rgba(255, 0, 110, 0.3);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child) {
+  background: linear-gradient(135deg, #FF006E 0%, #FF4D9E 100%);
+  border: 2px solid #FF006E;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.4);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child:hover) {
+  background: linear-gradient(135deg, #FF4D9E 0%, #FF006E 100%);
+  box-shadow: 0 0 30px rgba(255, 0, 110, 0.6);
+  transform: translateY(-2px);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 </style>
