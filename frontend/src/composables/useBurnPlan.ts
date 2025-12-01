@@ -30,41 +30,58 @@ export interface BurnPlan {
   resources: Resource[];
 }
 
-export interface BurnPlanResponse {
-  session_id: string;
-  burn_plan: {
-    total_amount: number;
-    timeline_days: number;
-    efficiency_level: string;
-    services_deployed: Array<{
-      service_name: string;
-      instance_type?: string;
-      quantity: number;
-      start_day: number;
-      end_day: number;
-      duration_used: number;
-      unit_cost: number;
-      total_cost: number;
-      usage_pattern: string;
-      waste_factor: number;
-    }>;
-    total_calculated_cost: number;
-    deployment_scenario: string;
-    key_mistakes: string[];
-    recommendations: string[];
-  };
+export interface ApiServiceDeployment {
+  service_name: string;
+  instance_type?: string;
+  quantity: number;
+  start_day: number;
+  end_day: number;
+  duration_used: string;
+  unit_cost: number;
+  total_cost: number;
+  usage_pattern: string;
+  waste_factor: string;
+  roast: string;
+}
+
+export interface PdfInvoice {
+  url: string;
+  s3_key: string;
+  bucket: string;
+  expiration_seconds: number;
+  upload_status: string;
+}
+
+export interface BurnPlanAnalysis {
+  total_amount: string;
+  timeline_days: number;
+  efficiency_level: string;
+  architecture_type?: string;
+  burning_style?: string;
+  services_deployed: ApiServiceDeployment[];
+  total_calculated_cost: number;
+  deployment_scenario: string;
+  key_mistakes: string[];
+  recommendations: string[];
+  roast: string;
+  pdf_invoice?: PdfInvoice;
+}
+
+export interface BurnPlanApiResponse {
+  analysis: BurnPlanAnalysis;
+  status: string;
 }
 
 export const useBurnPlan = () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const createBurnPlan = async (config: BurnConfig): Promise<BurnPlan | null> => {
+  const createBurnPlan = async (config: BurnConfig): Promise<BurnPlanAnalysis | null> => {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const response = await apiClient.post<BurnPlanResponse>('/burn-plan', {
+      const response = await apiClient.post<BurnPlanApiResponse>('/burn-plan', {
         config: {
           total_amount: config.totalAmount,
           timeline: config.timeline,
@@ -74,29 +91,8 @@ export const useBurnPlan = () => {
         },
       });
 
-      // Transform backend response to frontend format
-      const burnPlan: BurnPlan = {
-        sessionId: response.session_id,
-        totalAmount: response.burn_plan.total_amount,
-        duration: 60, // Default 60 seconds for visualization
-        timeline: config.timeline,
-        architecture: config.architecture,
-        burningStyle: config.burningStyle,
-        efficiencyLevel: config.efficiencyLevel,
-        resources: response.burn_plan.services_deployed.map((service, index) => ({
-          service: service.instance_type
-            ? `${service.service_name} ${service.instance_type}`
-            : service.service_name,
-          category: getCategoryFromService(service.service_name),
-          cost: service.total_cost,
-          startTime: (index * 5) % 60, // Stagger start times
-          endTime: 60,
-          description: service.usage_pattern,
-          costPerSecond: service.total_cost / 60,
-        })),
-      };
-
-      return burnPlan;
+      // Return the analysis object which contains all burn plan data including pdf_invoice
+      return response.analysis;
     } catch (err: any) {
       error.value = err.message || 'Failed to create burn plan';
       console.error('Burn plan creation error:', err);
