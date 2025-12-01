@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Kiro Usage Documentation",
+  "description": "Prompts users to document their Kiro usage experiences including: how they structured conversations for building projects, impressive code generation examples, automated workflows with hooks, and spec-driven development approaches",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Please help me document my Kiro usage experience. Ask me about the following topics and help me create comprehensive documentation:\n\n1. **Building and Vibe Coding from Scratch:**\n   - How did I structure my conversations with Kiro to build my project?\n   - What was the most impressive code generation Kiro helped me with?\n\n2. **Agent Hooks:**\n   - What specific workflows did I automate with Kiro hooks?\n   - How did these hooks improve my development process?\n\n3. **Spec-to-Code:**\n   - How did I structure my spec for Kiro to implement?\n   - How did the spec-driven approach improve my development process?\n\nPlease ask me these questions one at a time, gather my responses, and help me create well-structured documentation that captures my experience with Kiro. Format the final documentation in a clear, readable way that could help other developers understand how to effectively use Kiro."
+  }
+}

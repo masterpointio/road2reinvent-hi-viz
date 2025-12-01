@@ -1,0 +1,30 @@
+default_agent: money_spender_aws_agent
+agents:
+  money_spender_aws_agent:
+    name: money_spender_aws_agent
+    entrypoint: money_spender_aws_agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::114713347049:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-82b8bbbb36
+      execution_role_auto_create: false
+      account: '114713347049'
+      region: us-east-1
+      ecr_repository: 114713347049.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-money_spender_aws_agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: money_spender_aws_agent-VDHCzRHLoE
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE
+      agent_session_id: bd6e8a6b-0311-49a5-8f84-b41884bf695f
+    codebuild:
+      project_name: null
+      execution_role: null
+      source_bucket: null
+    authorizer_configuration: null
+    oauth_configuration: null
