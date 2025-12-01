@@ -130,7 +130,7 @@
           <v-chart class="burn-results__chart burn-results__chart--medium" :option="stackedAreaOption" autoresize />
         </UiCard>
 
-        <UiCard v-if="burnPlan?.roast" class="burn-results__card burn-results__card--half">
+        <UiCard class="burn-results__card burn-results__card--half">
           <template #header>🔥 Overall Roast</template>
           <div class="overall-roast">
             <div class="overall-roast__icon">💬</div>
@@ -138,8 +138,8 @@
           </div>
         </UiCard>
 
-        <!-- Services List -->
-        <UiCard class="burn-results__card burn-results__card--full">
+        <!-- Row 4: Services, Mistakes, and Recommendations -->
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Services Deployed</template>
           <div class="services-list">
             <div v-for="(service, idx) in burnPlan.services_deployed" :key="idx" class="service-item">
@@ -150,25 +150,22 @@
                 <div class="service-item__cost">${{ service.total_cost.toLocaleString() }}</div>
               </div>
               <div class="service-item__details">
-                <span>Quantity: {{ service.quantity }}</span>
+                <span>Qty: {{ service.quantity }}</span>
                 <span>Days: {{ service.start_day }}-{{ service.end_day }}</span>
-                <span>Pattern: {{ service.usage_pattern }}</span>
               </div>
               <div class="service-item__waste">💀 {{ service.waste_factor }}</div>
             </div>
           </div>
         </UiCard>
 
-        <!-- Mistakes -->
-        <UiCard class="burn-results__card">
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Key Mistakes</template>
           <ul class="mistakes-list">
             <li v-for="(mistake, idx) in burnPlan.key_mistakes" :key="idx">{{ mistake }}</li>
           </ul>
         </UiCard>
 
-        <!-- Recommendations -->
-        <UiCard class="burn-results__card">
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Recommendations</template>
           <ul class="recommendations-list">
             <li v-for="(rec, idx) in burnPlan.recommendations" :key="idx">{{ rec }}</li>
@@ -285,8 +282,24 @@ const generateRoasts = () => {
   
   if (roasts.value.length > 0 && roasts.value[0]) {
     currentRoast.value = roasts.value[0];
-    startTypewriter(burnPlan.value.roast || '');
   }
+  
+  // Start typewriter with overall roast or generate fallback
+  const overallRoast = burnPlan.value.roast || getRandomFallbackRoast();
+  startTypewriter(overallRoast);
+};
+
+const getRandomFallbackRoast = (): string => {
+  const fallbackRoasts: string[] = [
+    "Congratulations! You've successfully turned $100,000 into a cautionary tale. Your cloud bill is now a horror story that keeps CFOs up at night.",
+    "You just spent $100,000 proving that money can't buy happiness, but it can definitely buy regret. At least your AWS account manager is thrilled.",
+    "$100,000 later and you've mastered the art of cloud waste. This is the kind of innovation that makes accountants cry and DevOps engineers question their life choices.",
+    "Well, that's $100,000 you'll never see again. But hey, at least you've got some impressive graphs to show for it. Your shareholders will love this.",
+    "You've just burned through $100,000 faster than a startup burns through Series A funding. The only difference is they had a business plan. What's your excuse?",
+  ];
+  
+  const index = Math.floor(Math.random() * fallbackRoasts.length);
+  return fallbackRoasts[index] as string;
 };
 
 const startTypewriter = (text: string) => {
@@ -359,9 +372,10 @@ const handleDownloadReport = async () => {
     window.location.href = downloadUrl;
     showSuccess('Report downloaded successfully!');
     showDownloadModal.value = false;
-  } catch (error: any) {
-    console.error('Download error:', error);
-    showError(error.message || 'Failed to download report. Please try again.');
+  } catch (err: unknown) {
+    console.error('Download error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Failed to download report. Please try again.';
+    showError(errorMessage);
   } finally {
     isDownloading.value = false;
   }
@@ -369,8 +383,24 @@ const handleDownloadReport = async () => {
 
 // Get the maximum cost for fixed Y-axis scaling
 const maxCost = computed(() => {
+  if (!burnPlan.value || !chartData.value) return 10000;
+  
+  // Find the maximum daily cost from the timeline data
+  const maxDailyValue = Math.max(...chartData.value.timelineData.values);
+  
+  // Add 10% buffer for better visualization
+  return Math.ceil(maxDailyValue * 1.1);
+});
+
+// Get the maximum single service cost for stacked area chart
+const maxStackedAreaCost = computed(() => {
   if (!burnPlan.value) return 10000;
-  return burnPlan.value.total_calculated_cost;
+  
+  // Find the largest single service cost
+  const maxServiceCost = Math.max(...burnPlan.value.services_deployed.map(s => s.total_cost));
+  
+  // Add 20% buffer for better visualization
+  return Math.ceil(maxServiceCost * 1.2);
 });
 
 // Get the maximum daily cost for the stacked bar chart
@@ -395,18 +425,32 @@ const topServicesOption = computed(() => ({
   backgroundColor: 'transparent',
   animationDuration: ANIMATION_DURATION,
   animationEasing: 'cubicOut' as const,
-  grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
+  grid: { left: '35%', right: '15%', top: '5%', bottom: '5%' },
   xAxis: {
     type: 'value',
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
+    axisLabel: { 
+      color: '#fff', 
+      fontSize: 10,
+      formatter: (value: number) => {
+        if (value >= 1000) {
+          return `$${(value / 1000).toFixed(0)}k`;
+        }
+        return `$${value}`;
+      },
+    },
     splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
   },
   yAxis: {
     type: 'category',
     data: chartData.value?.racingBarData.map((item) => item.name) || [],
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', fontSize: 11 },
+    axisLabel: { 
+      color: '#fff', 
+      fontSize: 10,
+      overflow: 'truncate',
+      width: 150,
+    },
     inverse: true,
   },
   series: [
@@ -435,7 +479,8 @@ const topServicesOption = computed(() => ({
         position: 'right',
         color: '#fff',
         formatter: '${c}',
-        fontSize: 11,
+        fontSize: 10,
+        distance: 5,
       },
       barWidth: '60%',
     },
@@ -551,9 +596,11 @@ const stackedAreaOption = computed(() => {
       borderWidth: 2,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
-        let result = `${params[0].axisValue}<br/>`;
+        if (!Array.isArray(params)) return '';
+        const firstParam = params[0] as any;
+        let result = `${firstParam?.axisValue || ''}<br/>`;
         params.forEach((item: any) => {
-          result += `${item.marker} ${item.seriesName}: $${item.value}<br/>`;
+          result += `${item?.marker || ''} ${item?.seriesName || ''}: $${item?.value || 0}<br/>`;
         });
         return result;
       },
@@ -571,7 +618,7 @@ const stackedAreaOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      max: maxCost.value,
+      max: maxStackedAreaCost.value,
       axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
       axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
       splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },

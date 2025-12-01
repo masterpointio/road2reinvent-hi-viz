@@ -144,6 +144,7 @@ import { useRouter } from 'vue-router';
 import { useToasts } from '../composables/useToasts';
 import { useApi } from '../composables/useApi';
 import type { BurnPlanResponse, ServiceDeployment } from '../types/burnPlan';
+import { FALLBACK_BURN_PLAN } from '../data/fallbackBurnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
@@ -160,10 +161,10 @@ interface BurnConfig {
 }
 
 const config = ref<BurnConfig>({
-  totalAmount: null,
-  timeline: null,
-  architecture: '',
-  burningStyle: '',
+  totalAmount: 100000,
+  timeline: 30,
+  architecture: 'traditional',
+  burningStyle: 'vertical',
   efficiencyLevel: 5,
 });
 
@@ -290,8 +291,17 @@ const startBurn = async () => {
       router.push('/app/burn-results');
     }, 500);
   } catch (err) {
-    showError('Failed to generate burn plan. Please try again.');
     console.error('Error in startBurn:', err);
+    
+    // Fall back to mock data for demo
+    console.warn('API call failed, using fallback data for demo');
+    sessionStorage.setItem('currentBurnPlan', JSON.stringify(FALLBACK_BURN_PLAN));
+    
+    success('Using demo data. Redirecting...');
+    
+    setTimeout(() => {
+      router.push('/app/burn-results');
+    }, 500);
   } finally {
     isBurnPlanLoading.value = false;
   }

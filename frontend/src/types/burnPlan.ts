@@ -41,7 +41,7 @@ export interface ServiceDeployment {
   duration_used: string;
   usage_pattern: string;
   waste_factor: string;
-  roast: string;
+  roast?: string;
 }
 
 // Helper to convert backend format to frontend chart format
