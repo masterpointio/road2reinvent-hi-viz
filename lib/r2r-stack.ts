@@ -12,6 +12,7 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
 
 export class R2RStack extends cdk.Stack {
@@ -112,8 +113,8 @@ export class R2RStack extends cdk.Stack {
           cognito.OAuthScope.OPENID,
           cognito.OAuthScope.PROFILE,
         ],
-        callbackUrls: ['http://localhost:3000/callback'],
-        logoutUrls: ['http://localhost:3000/logout'],
+        callbackUrls: ['http://localhost:5173/login-callback'],
+        logoutUrls: ['http://localhost:5173/login'],
       },
     });
 
@@ -182,15 +183,32 @@ export class R2RStack extends cdk.Stack {
     const userPoolClientCfn = userPoolClient.node
       .defaultChild as cognito.CfnUserPoolClient;
     userPoolClientCfn.callbackUrLs = [
-      'http://localhost:5173/callback',
-      `${cloudFrontUrl}/callback`,
-      `${customDomainUrl}/callback`,
+      'http://localhost:5173/login-callback',
+      'http://localhost:3000/login-callback',
+      `${cloudFrontUrl}/login-callback`,
+      `${customDomainUrl}/login-callback`,
     ];
     userPoolClientCfn.logoutUrLs = [
-      'http://localhost:5173/logout',
-      `${cloudFrontUrl}/logout`,
-      `${customDomainUrl}/logout`,
+      'http://localhost:5173/login',
+      'http://localhost:3000/login',
+      `${cloudFrontUrl}/login`,
+      `${customDomainUrl}/login`,
     ];
+
+    // Create DynamoDB table for burn plans
+    const burnPlansTable = new dynamodb.Table(this, 'BurnPlansTable', {
+      tableName: 'burn-plans',
+      partitionKey: {
+        name: 'id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'timestamp',
+        type: dynamodb.AttributeType.NUMBER,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // Create Lambda function
     const helloWorldFunction = new lambda.NodejsFunction(this, 'HelloWorldFunction', {
@@ -200,6 +218,35 @@ export class R2RStack extends cdk.Stack {
         externalModules: ['aws-sdk'],
       },
     });
+
+    // Create Burn Plan Lambda function
+    const burnPlanFunction = new lambda.NodejsFunction(this, 'BurnPlanFunction', {
+      entry: path.join(__dirname, 'lambda', 'burn-plan.ts'),
+      runtime: cdk.aws_lambda.Runtime.NODEJS_22_X,
+      timeout: cdk.Duration.seconds(29),
+      memorySize: 512,
+      environment: {
+        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spend_aws_bill_agent-4UONHCBVbf',
+        BURN_PLANS_TABLE_NAME: burnPlansTable.tableName,
+      },
+      bundling: {
+        externalModules: ['@aws-sdk/*'],
+      },
+    });
+
+    // Grant Lambda permission to invoke AgentCore agent runtime
+    burnPlanFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:InvokeAgentRuntime',
+        ],
+        resources: ['*'],
+      })
+    );
+
+    // Grant Lambda permission to write to DynamoDB
+    burnPlansTable.grantWriteData(burnPlanFunction);
 
     // Create FastAPI Lambda function
     const fastapiFunction = new pythonLambda.Function(this, 'FastAPIFunction', {
@@ -220,7 +267,25 @@ export class R2RStack extends cdk.Stack {
       ),
       timeout: cdk.Duration.seconds(29),
       memorySize: 512,
+      environment: {
+        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+        BURN_PLANS_TABLE_NAME: burnPlansTable.tableName,
+      },
     });
+
+    // Grant Lambda permission to invoke AgentCore agent runtime
+    fastapiFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:InvokeAgentRuntime',
+        ],
+        resources: ['*'],
+      })
+    );
+
+    // Grant Lambda permission to read/write DynamoDB
+    burnPlansTable.grantReadWriteData(fastapiFunction);
 
     // // Create API Gateway with Cognito Authorizer
     const api = new apigateway.RestApi(this, 'R2RApi', {
@@ -250,6 +315,10 @@ export class R2RStack extends cdk.Stack {
     const apiResource = api.root.addResource('api');
     const proxyResource = apiResource.addResource('{proxy+}');
     proxyResource.addMethod('ANY', new apigateway.LambdaIntegration(fastapiFunction));
+
+    // Add Burn Plan endpoint (not under /api)
+    const burnPlanResource = api.root.addResource('burn-plan');
+    burnPlanResource.addMethod('POST', new apigateway.LambdaIntegration(burnPlanFunction));
 
     // Deploy frontend to S3
     new s3deploy.BucketDeployment(this, 'R2RFrontendDeployment', {
@@ -301,6 +370,11 @@ export class R2RStack extends cdk.Stack {
       description: 'FastAPI Health Check URL',
     });
 
+    new cdk.CfnOutput(this, 'BurnPlanUrl', {
+      value: `${api.url}burn-plan`,
+      description: 'Burn Plan Endpoint URL',
+    });
+
     // Note: Hosted Zone ID and Name Servers are not available when using fromLookup
     // Check the Route53 console or use AWS CLI to view these values
 
@@ -324,6 +398,11 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GitHubOIDCProviderArn', {
       value: githubProvider.openIdConnectProviderArn,
       description: 'GitHub OIDC Provider ARN',
+    });
+
+    new cdk.CfnOutput(this, 'BurnPlansTableName', {
+      value: burnPlansTable.tableName,
+      description: 'DynamoDB Table Name for Burn Plans',
     });
   }
 }

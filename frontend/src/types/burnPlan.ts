@@ -1,12 +1,33 @@
+export interface PdfInvoice {
+  url: string;
+  s3_key: string;
+  bucket: string;
+  expiration_seconds: number;
+  upload_status: string;
+}
+
 export interface BurnPlanResponse {
   total_amount: string;
   timeline_days: number;
   efficiency_level: string;
+  architecture_type?: string;
+  burning_style?: string;
   services_deployed: ServiceDeployment[];
   total_calculated_cost: number;
   deployment_scenario: string;
   key_mistakes: string[];
   recommendations: string[];
+  roast: string;
+  pdf_invoice?: PdfInvoice;
+  achievement?: {
+    title: string;
+    text: string;
+  };
+}
+
+export interface BurnPlanApiResponse {
+  analysis: BurnPlanResponse;
+  status: string;
 }
 
 export interface ServiceDeployment {
@@ -20,6 +41,7 @@ export interface ServiceDeployment {
   duration_used: string;
   usage_pattern: string;
   waste_factor: string;
+  roast: string;
 }
 
 // Helper to convert backend format to frontend chart format

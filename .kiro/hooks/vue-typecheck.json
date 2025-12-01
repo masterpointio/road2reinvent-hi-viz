@@ -1,0 +1,14 @@
+{
+  "name": "Vue Component Type Check",
+  "description": "Runs type-checking when Vue components are added or updated",
+  "enabled": true,
+  "trigger": {
+    "type": "onFileSave",
+    "filePattern": "frontend/src/**/*.vue"
+  },
+  "action": {
+    "type": "executeCommand",
+    "command": "cd frontend && npx vue-tsc --noEmit",
+    "showOutput": true
+  }
+}

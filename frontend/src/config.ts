@@ -3,9 +3,25 @@
  * All environment variables are accessed here for easy management
  */
 
+const getRedirectUri = (): string => {
+  return `${window.location.origin}/login-callback`;
+};
+
+const getCognitoLoginUrl = (): string => {
+  const domain = import.meta.env.VITE_COGNITO_DOMAIN;
+  const clientId = import.meta.env.VITE_COGNITO_CLIENT_ID;
+  
+  if (!domain || !clientId) {
+    return '';
+  }
+
+  const redirectUri = getRedirectUri();
+  return `https://${domain}/login?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}`;
+};
+
 export const config = {
   // Application
-  appName: 'R2R App',
+  appName: 'Bill Burner',
 
   // API Configuration
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '',
@@ -13,7 +29,7 @@ export const config = {
   // Cognito Configuration
   cognitoDomain: import.meta.env.VITE_COGNITO_DOMAIN || '',
   cognitoClientId: import.meta.env.VITE_COGNITO_CLIENT_ID || '',
-  cognitoLoginUrl: import.meta.env.VITE_COGNITO_LOGIN_URL || '',
+  cognitoLoginUrl: import.meta.env.VITE_COGNITO_LOGIN_URL || getCognitoLoginUrl(),
   cognitoLogoutUrl: import.meta.env.VITE_COGNITO_LOGOUT_URL || '',
 
   // Feature Flags (for quick toggles during hackathon)

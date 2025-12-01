@@ -31,51 +31,28 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/app',
     component: AppLayout,
-    meta: { requiresAuth: false },
+    meta: { requiresAuth: true },
     children: [
       {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('../views/DashboardView.vue'),
-      },
-      {
-        path: 'items',
-        name: 'items',
-        component: () => import('../views/ItemsListView.vue'),
+        path: '',
+        name: 'app-landing',
+        component: () => import('../views/LandingView.vue'),
       },
       {
         path: 'burn-config',
         name: 'burn-config',
         component: () => import('../views/BurnConfigurationView.vue'),
       },
-    ],
-  },
-  {
-    path: '/components',
-    component: AppLayout,
-    children: [
       {
-        path: '',
-        name: 'components',
-        component: () => import('../views/ComponentsShowcaseView.vue'),
-      },
-    ],
-  },
-  {
-    path: '/charts',
-    component: AppLayout,
-    children: [
-      {
-        path: '',
-        name: 'charts',
-        component: () => import('../views/ChartsShowcaseView.vue'),
+        path: 'burn-results',
+        name: 'burn-results',
+        component: () => import('../views/BurnResultsView.vue'),
       },
     ],
   },
   {
     path: '/',
-    name: 'landing',
-    component: () => import('../views/LandingView.vue'),
+    redirect: '/login',
   },
 ]
 
@@ -89,11 +66,7 @@ router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useAuth()
 
   if (requiresAuth && !isAuthenticated.value) {
-    if (config.cognitoLoginUrl) {
-      window.location.href = config.cognitoLoginUrl
-    } else {
-      next('/login')
-    }
+    next('/login')
   } else {
     next()
   }
