@@ -3,8 +3,8 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const handleDashboard = () => {
-  router.push('/app/dashboard')
+const handleStartBurnin = () => {
+  router.push('/app/burn-config')
 }
 </script>
 
@@ -16,8 +16,8 @@ const handleDashboard = () => {
         alt="Bill Burner by Team Hi-Viz" 
         class="hero-image"
       />
-      <button class="neon-button" @click="handleDashboard">
-        Dashboard
+      <button class="neon-button" @click="handleStartBurnin">
+        Start Burnin
       </button>
     </div>
   </div>
