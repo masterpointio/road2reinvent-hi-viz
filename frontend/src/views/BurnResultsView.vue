@@ -290,7 +290,7 @@ const generateRoasts = () => {
 };
 
 const getRandomFallbackRoast = (): string => {
-  const fallbackRoasts = [
+  const fallbackRoasts: string[] = [
     "Congratulations! You've successfully turned $100,000 into a cautionary tale. Your cloud bill is now a horror story that keeps CFOs up at night.",
     "You just spent $100,000 proving that money can't buy happiness, but it can definitely buy regret. At least your AWS account manager is thrilled.",
     "$100,000 later and you've mastered the art of cloud waste. This is the kind of innovation that makes accountants cry and DevOps engineers question their life choices.",
@@ -298,7 +298,8 @@ const getRandomFallbackRoast = (): string => {
     "You've just burned through $100,000 faster than a startup burns through Series A funding. The only difference is they had a business plan. What's your excuse?",
   ];
   
-  return fallbackRoasts[Math.floor(Math.random() * fallbackRoasts.length)];
+  const index = Math.floor(Math.random() * fallbackRoasts.length);
+  return fallbackRoasts[index] as string;
 };
 
 const startTypewriter = (text: string) => {
@@ -371,9 +372,10 @@ const handleDownloadReport = async () => {
     window.location.href = downloadUrl;
     showSuccess('Report downloaded successfully!');
     showDownloadModal.value = false;
-  } catch (error: unknown) {
-    console.error('Download error:', error);
-    showError(error.message || 'Failed to download report. Please try again.');
+  } catch (err: unknown) {
+    console.error('Download error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Failed to download report. Please try again.';
+    showError(errorMessage);
   } finally {
     isDownloading.value = false;
   }
@@ -593,10 +595,12 @@ const stackedAreaOption = computed(() => {
       borderColor: neonColors.hiviz,
       borderWidth: 2,
       textStyle: { color: '#fff' },
-      formatter: (params: unknown) => {
-        let result = `${params[0].axisValue}<br/>`;
-        params.forEach((item: unknown) => {
-          result += `${item.marker} ${item.seriesName}: $${item.value}<br/>`;
+      formatter: (params: any) => {
+        if (!Array.isArray(params)) return '';
+        const firstParam = params[0] as any;
+        let result = `${firstParam?.axisValue || ''}<br/>`;
+        params.forEach((item: any) => {
+          result += `${item?.marker || ''} ${item?.seriesName || ''}: $${item?.value || 0}<br/>`;
         });
         return result;
       },
