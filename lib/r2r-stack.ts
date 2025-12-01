@@ -12,6 +12,7 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as path from 'path';
 
 export class R2RStack extends cdk.Stack {
@@ -194,6 +195,21 @@ export class R2RStack extends cdk.Stack {
       `${customDomainUrl}/login`,
     ];
 
+    // Create DynamoDB table for burn plans
+    const burnPlansTable = new dynamodb.Table(this, 'BurnPlansTable', {
+      tableName: 'burn-plans',
+      partitionKey: {
+        name: 'id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'timestamp',
+        type: dynamodb.AttributeType.NUMBER,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // Create Lambda function
     const helloWorldFunction = new lambda.NodejsFunction(this, 'HelloWorldFunction', {
       entry: path.join(__dirname, 'lambda', 'hello-world.ts'),
@@ -211,6 +227,7 @@ export class R2RStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+        BURN_PLANS_TABLE_NAME: burnPlansTable.tableName,
       },
       bundling: {
         externalModules: ['@aws-sdk/*'],
@@ -227,6 +244,9 @@ export class R2RStack extends cdk.Stack {
         resources: ['*'],
       })
     );
+
+    // Grant Lambda permission to write to DynamoDB
+    burnPlansTable.grantWriteData(burnPlanFunction);
 
     // Create FastAPI Lambda function
     const fastapiFunction = new pythonLambda.Function(this, 'FastAPIFunction', {
@@ -249,6 +269,7 @@ export class R2RStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+        BURN_PLANS_TABLE_NAME: burnPlansTable.tableName,
       },
     });
 
@@ -262,6 +283,9 @@ export class R2RStack extends cdk.Stack {
         resources: ['*'],
       })
     );
+
+    // Grant Lambda permission to read/write DynamoDB
+    burnPlansTable.grantReadWriteData(fastapiFunction);
 
     // // Create API Gateway with Cognito Authorizer
     const api = new apigateway.RestApi(this, 'R2RApi', {
@@ -374,6 +398,11 @@ export class R2RStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GitHubOIDCProviderArn', {
       value: githubProvider.openIdConnectProviderArn,
       description: 'GitHub OIDC Provider ARN',
+    });
+
+    new cdk.CfnOutput(this, 'BurnPlansTableName', {
+      value: burnPlansTable.tableName,
+      description: 'DynamoDB Table Name for Burn Plans',
     });
   }
 }
