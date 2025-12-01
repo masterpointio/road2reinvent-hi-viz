@@ -320,7 +320,7 @@ onUnmounted(() => {
 
 @media (min-width: 1024px) {
   .app-layout__nav-content {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
   }
 
@@ -329,7 +329,7 @@ onUnmounted(() => {
   }
 
   .app-layout__main {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
   }
 }

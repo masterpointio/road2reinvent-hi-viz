@@ -1,5 +1,30 @@
 <template>
   <div class="burn-results">
+    <!-- Download Report Modal -->
+    <UiModal
+      v-model="showDownloadModal"
+      title="Download Report for Your CFO"
+      :primary-action="{ label: isDownloading ? 'Downloading...' : 'Download PDF', onClick: handleDownloadReport }"
+      :secondary-action="{ label: 'Cancel', onClick: () => showDownloadModal = false }"
+      class="download-report-modal"
+    >
+      <div class="download-modal">
+        <div class="download-modal__icon">📊</div>
+        <p class="download-modal__text">
+          Time to face the music. This report contains all the gory details of your AWS spending spree,
+          formatted in a way that might make your CFO cry (or laugh, depending on their sense of humor).
+        </p>
+        <p class="download-modal__subtext">
+          Includes: Service breakdowns, timeline analysis, waste factors, our signature roasts, and suggestions on how you might pay your bill.
+          Perfect for explaining why the cloud bill looks like a phone number.
+        </p>
+        <div v-if="isDownloading" class="download-modal__spinner">
+          <UiSpinner size="lg" />
+          <span>Generating your financial horror story...</span>
+        </div>
+      </div>
+    </UiModal>
+
     <div class="burn-results__header">
       <div>
         <h1>🔥 Your Burn Results</h1>
@@ -8,6 +33,10 @@
       <UiButton variant="secondary" @click="goBack">
         ← Configure New Burn
       </UiButton>
+      <div class="burn-results__header-spacer"></div>
+      <button class="download-report-btn" @click="showDownloadModal = true">
+        📄 Download Report
+      </button>
     </div>
 
     <!-- Overall Progress Meter -->
@@ -101,7 +130,7 @@
           <v-chart class="burn-results__chart burn-results__chart--medium" :option="stackedAreaOption" autoresize />
         </UiCard>
 
-        <UiCard v-if="burnPlan?.roast" class="burn-results__card burn-results__card--half">
+        <UiCard class="burn-results__card burn-results__card--half">
           <template #header>🔥 Overall Roast</template>
           <div class="overall-roast">
             <div class="overall-roast__icon">💬</div>
@@ -109,8 +138,8 @@
           </div>
         </UiCard>
 
-        <!-- Services List -->
-        <UiCard class="burn-results__card burn-results__card--full">
+        <!-- Row 4: Services, Mistakes, and Recommendations -->
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Services Deployed</template>
           <div class="services-list">
             <div v-for="(service, idx) in burnPlan.services_deployed" :key="idx" class="service-item">
@@ -121,25 +150,22 @@
                 <div class="service-item__cost">${{ service.total_cost.toLocaleString() }}</div>
               </div>
               <div class="service-item__details">
-                <span>Quantity: {{ service.quantity }}</span>
+                <span>Qty: {{ service.quantity }}</span>
                 <span>Days: {{ service.start_day }}-{{ service.end_day }}</span>
-                <span>Pattern: {{ service.usage_pattern }}</span>
               </div>
               <div class="service-item__waste">💀 {{ service.waste_factor }}</div>
             </div>
           </div>
         </UiCard>
 
-        <!-- Mistakes -->
-        <UiCard class="burn-results__card burn-results__card--full">
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Key Mistakes</template>
           <ul class="mistakes-list">
             <li v-for="(mistake, idx) in burnPlan.key_mistakes" :key="idx">{{ mistake }}</li>
           </ul>
         </UiCard>
 
-        <!-- Recommendations -->
-        <UiCard class="burn-results__card burn-results__card--full">
+        <UiCard class="burn-results__card burn-results__card--third">
           <template #header>Recommendations</template>
           <ul class="recommendations-list">
             <li v-for="(rec, idx) in burnPlan.recommendations" :key="idx">{{ rec }}</li>
@@ -163,11 +189,13 @@ import type { BurnPlanResponse } from '../types/burnPlan';
 import { convertToChartData } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
+import UiModal from '../components/UiModal.vue';
+import UiSpinner from '../components/UiSpinner.vue';
 
 use([CanvasRenderer, BarChart, LineChart, PieChart, GaugeChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent]);
 
 const router = useRouter();
-const { info } = useToasts();
+const { info, success: showSuccess, error: showError } = useToasts();
 const burnPlan = ref<BurnPlanResponse | null>(null);
 const animationProgress = ref(0);
 const currentRoast = ref('');
@@ -178,6 +206,10 @@ let animationFrame: number | null = null;
 let startTime: number | null = null;
 let roastInterval: number | null = null;
 let typewriterInterval: number | null = null;
+
+// Download modal state
+const showDownloadModal = ref(false);
+const isDownloading = ref(false);
 
 const ANIMATION_DURATION = 10000; // 10 seconds
 const ROAST_INTERVAL = 5000; // Show new roast every 5 seconds
@@ -253,9 +285,20 @@ const generateRoasts = () => {
   }
   
   // Start typewriter with overall roast or generate fallback
-  const overallRoast = burnPlan.value.roast || 
-    `You just burned $${burnPlan.value.total_calculated_cost.toLocaleString()} in ${burnPlan.value.timeline_days} days. ${burnPlan.value.deployment_scenario}`;
+  const overallRoast = burnPlan.value.roast || getRandomFallbackRoast();
   startTypewriter(overallRoast);
+};
+
+const getRandomFallbackRoast = (): string => {
+  const fallbackRoasts = [
+    "Congratulations! You've successfully turned $100,000 into a cautionary tale. Your cloud bill is now a horror story that keeps CFOs up at night.",
+    "You just spent $100,000 proving that money can't buy happiness, but it can definitely buy regret. At least your AWS account manager is thrilled.",
+    "$100,000 later and you've mastered the art of cloud waste. This is the kind of innovation that makes accountants cry and DevOps engineers question their life choices.",
+    "Well, that's $100,000 you'll never see again. But hey, at least you've got some impressive graphs to show for it. Your shareholders will love this.",
+    "You've just burned through $100,000 faster than a startup burns through Series A funding. The only difference is they had a business plan. What's your excuse?",
+  ];
+  
+  return fallbackRoasts[Math.floor(Math.random() * fallbackRoasts.length)];
 };
 
 const startTypewriter = (text: string) => {
@@ -307,7 +350,36 @@ const goBack = () => {
   router.push('/app/burn-config');
 };
 
-// Get the maximum cost for dynamic Y-axis scaling based on daily data
+const handleDownloadReport = async () => {
+  if (!burnPlan.value) {
+    showError('No burn plan available to download');
+    return;
+  }
+
+  // Default fallback URL if pdf_invoice.url is not available
+  const DEFAULT_PDF_URL = 'https://aws-bill-invoices-demo.s3.amazonaws.com/invoices/20251130_155208_aws_bill.pdf?AWSAccessKeyId=ASIARVNLSYPUSBXALMMB&Signature=PyCDdA5w59vKzBsmFgdytOeUYy8%3D&x-amz-security-token=IQoJb3JpZ2luX2VjECgaCXVzLWVhc3QtMSJGMEQCIFhkUfZMHUYnmftR%2BE9ev6lIAhOedJqOxgi%2FWNdv3T4WAiBs3XfUEhejEXx504zG4bM1i%2FNBc7gYWzSUZKNfZPyuVSr7Agjx%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAAaDDExNDcxMzM0NzA0OSIMZMTMpVDQDfqStdELKs8CgbQs1mv221KYEZ%2BorB5UJrew4s74lJ8HDDrNMeYENm%2F%2B9MdMMW%2BsCTvSicUBhfcR14gnXsHmY3VuWBLWK3gnw75tSaArvK6dMzFEkQVAWvJ5b6DDdUbe2JsGmc10juH5fuHhIM6JGiZ%2BXywvkT83KQWxAeFzmuQsPBZnTwpTvHjv68IVBR%2FXnDcDxrI8q7NB7%2BRwyThhjshINk5U5AW9RooTPq%2BmFSJUyopFhFVG2nEUis4e1m0ipkqR0urzi2%2F%2FOhqD%2B5brsFVYduu6tPRMqNwjm%2BttSFUZvVbQAuLebz%2B2QcOTr71x%2BrVCBi9WGYIs2CfDG3OMmfs5gCjnpXyhNlOUnK7qdgXI17jRw%2Fyst%2FweE7qW87QO0lwudA0dvbcx7oImc0FczaRrGAU0MwCCki2%2FnMN3vJKNypu8VYTGPLNRBxOGaNQLAy9jtPLBtY8wjquzyQY6pgGzFwKK5I5ywSssPZMyqdh9%2BiQ3uqO2V%2FMmpCxD5zxtcRgT5DEdFAFMqoVGo0hZHeMF6E8S%2BSE4a%2F1QzoEiJAFhY0qryjG%2Fh7e1nboi6Y4pS%2BpCaPXCMKmL8CtYKFYt2hf4Ou5AzEccGP%2B%2FUqBQL4cbHYgBNQXTsYZQR2AdgV00z49dypJKvEvEEJL6sm7EKn74B3%2BD%2FNBDjFal5ffw1MxRtZ9kO49I&Expires=1764550329';
+
+  const downloadUrl = burnPlan.value.pdf_invoice?.url || DEFAULT_PDF_URL;
+
+  isDownloading.value = true;
+
+  try {
+    // Simulate a brief delay for UX (spinner animation)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Navigate to the pre-signed S3 URL to download the PDF
+    window.location.href = downloadUrl;
+    showSuccess('Report downloaded successfully!');
+    showDownloadModal.value = false;
+  } catch (error: unknown) {
+    console.error('Download error:', error);
+    showError(error.message || 'Failed to download report. Please try again.');
+  } finally {
+    isDownloading.value = false;
+  }
+};
+
+// Get the maximum cost for fixed Y-axis scaling
 const maxCost = computed(() => {
   if (!burnPlan.value || !chartData.value) return 10000;
   
@@ -355,7 +427,16 @@ const topServicesOption = computed(() => ({
   xAxis: {
     type: 'value',
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', formatter: '${value}', fontSize: 10 },
+    axisLabel: { 
+      color: '#fff', 
+      fontSize: 10,
+      formatter: (value: number) => {
+        if (value >= 1000) {
+          return `$${(value / 1000).toFixed(0)}k`;
+        }
+        return `$${value}`;
+      },
+    },
     splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
   },
   yAxis: {
@@ -512,9 +593,9 @@ const stackedAreaOption = computed(() => {
       borderColor: neonColors.hiviz,
       borderWidth: 2,
       textStyle: { color: '#fff' },
-      formatter: (params: any) => {
+      formatter: (params: unknown) => {
         let result = `${params[0].axisValue}<br/>`;
-        params.forEach((item: any) => {
+        params.forEach((item: unknown) => {
           result += `${item.marker} ${item.seriesName}: $${item.value}<br/>`;
         });
         return result;
@@ -758,17 +839,16 @@ const stackedBarOption = computed(() => {
 
 .burn-results__header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-md);
   flex-wrap: wrap;
 }
 
-.burn-results__header-actions {
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
+.burn-results__header-spacer {
+  flex: 1;
 }
+
+
 
 .burn-results__header h1 {
   color: var(--color-text);
@@ -1080,5 +1160,193 @@ const stackedBarOption = computed(() => {
   .burn-results__chart--compact {
     height: 280px;
   }
+}
+
+/* Download Report Button */
+.download-report-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, #FF006E 0%, #FF4D9E 100%);
+  border: 2px solid #FF006E;
+  border-radius: var(--border-radius-md);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.download-report-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.download-report-btn:hover {
+  background: linear-gradient(135deg, #FF4D9E 0%, #FF006E 100%);
+  border-color: #FF4D9E;
+  box-shadow: 0 0 30px rgba(255, 0, 110, 0.6), 0 0 60px rgba(255, 0, 110, 0.3), 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.download-report-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.download-report-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Download Modal */
+.download-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: center;
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.download-modal__icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-sm);
+  animation: pulse-pink 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 0, 110, 0.6));
+}
+
+@keyframes pulse-pink {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(255, 0, 110, 0.6));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 30px rgba(255, 0, 110, 0.8));
+  }
+}
+
+.download-modal__text {
+  font-size: 1.125rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 500;
+}
+
+.download-modal__subtext {
+  font-size: 0.9375rem;
+  color: #FF006E;
+  line-height: 1.6;
+  margin: 0;
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.1) 0%, rgba(255, 77, 158, 0.1) 100%);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid #FF006E;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.3), inset 0 0 20px rgba(255, 0, 110, 0.1);
+  font-weight: 500;
+}
+
+.download-modal__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  color: #FF006E;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.05) 0%, rgba(255, 77, 158, 0.05) 100%);
+  border-radius: var(--border-radius-lg);
+  border: 2px dashed #FF006E;
+  animation: glow-pink 1.5s ease-in-out infinite;
+}
+
+@keyframes glow-pink {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 110, 0.6);
+  }
+}
+
+/* Pink Modal Theme */
+.download-report-modal :deep(.ui-modal) {
+  border: 3px solid #FF006E;
+  box-shadow: 0 0 40px rgba(255, 0, 110, 0.5), 0 20px 60px rgba(0, 0, 0, 0.5);
+  background: var(--color-bg);
+}
+
+.download-report-modal :deep(.ui-modal__header) {
+  border-bottom: 2px solid #FF006E;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.1) 0%, rgba(255, 77, 158, 0.05) 100%);
+}
+
+.download-report-modal :deep(.ui-modal__title) {
+  color: #FF006E;
+  text-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+  font-weight: 700;
+}
+
+.download-report-modal :deep(.ui-modal__close) {
+  color: #FF006E;
+  transition: all 0.2s;
+}
+
+.download-report-modal :deep(.ui-modal__close:hover) {
+  background: rgba(255, 0, 110, 0.2);
+  color: #FF4D9E;
+  box-shadow: 0 0 15px rgba(255, 0, 110, 0.4);
+}
+
+.download-report-modal :deep(.ui-modal__actions) {
+  border-top: 2px solid #FF006E;
+  background: linear-gradient(135deg, rgba(255, 0, 110, 0.05) 0%, rgba(255, 77, 158, 0.02) 100%);
+}
+
+.download-report-modal :deep(.ui-modal__actions button) {
+  transition: all 0.3s;
+}
+
+.download-report-modal :deep(.ui-modal__actions button:first-child) {
+  border: 2px solid #FF006E;
+  color: #FF006E;
+}
+
+.download-report-modal :deep(.ui-modal__actions button:first-child:hover) {
+  background: rgba(255, 0, 110, 0.1);
+  box-shadow: 0 0 15px rgba(255, 0, 110, 0.3);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child) {
+  background: linear-gradient(135deg, #FF006E 0%, #FF4D9E 100%);
+  border: 2px solid #FF006E;
+  box-shadow: 0 0 20px rgba(255, 0, 110, 0.4);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child:hover) {
+  background: linear-gradient(135deg, #FF4D9E 0%, #FF006E 100%);
+  box-shadow: 0 0 30px rgba(255, 0, 110, 0.6);
+  transform: translateY(-2px);
+}
+
+.download-report-modal :deep(.ui-modal__actions button:last-child:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 </style>
