@@ -1,249 +1,155 @@
-# Money Spender Agent 💸
+# 💸 Bill Burner
 
-An AWS spending forensics tool that reverse-engineers what wasteful and over-engineered AWS resources were likely deployed based on a spending amount, timeline, and efficiency level.
+A satirical AWS bill generator that shows you the most creative ways to waste money on cloud infrastructure. Tell us your budget and how inefficient you want to be, and we'll generate a hilariously over-engineered AWS architecture to burn through it.
 
-## Overview
+## What is this?
 
-The Money Spender Agent uses AI to analyze AWS cloud spending patterns and generate detailed forensic reports about what services were likely spun up to result in a given cost. It's perfect for:
+Ever wondered how to spend $10,000 on AWS in the most wasteful way possible? Bill Burner uses AI to generate mock AWS configurations that maximize cloud spending through over-provisioning, redundant services, and questionable architecture decisions.
 
-- Understanding how AWS costs accumulate
-- Learning about AWS services and pricing
-- Identifying common cost optimization mistakes
-- Creating realistic spending scenarios for training
+Pick your "stupidity level" from "Mildly dumb" to "Brain damage" and watch as the app generates increasingly absurd AWS deployments - like using AWS Ground Station to fetch weather data or spinning up 50 EKS nodes for a todo list.
 
-## Features
+## Quick Start
 
-- 🔍 **Forensic Analysis**: Reverse-engineer AWS resource deployments from spending amounts
-- 📊 **Structured Output**: Get detailed JSON reports with service breakdowns
-- ⏱️ **Timeline Tracking**: See when services started and stopped (day-by-day)
-- 🎯 **Efficiency Levels**: Four levels from "Mildly dumb" to "Brain damage"
-- 💰 **Cost Breakdown**: Detailed per-service cost calculations
-- 📝 **Recommendations**: Get suggestions for cost optimization
-
-## Installation
-
-### Prerequisites
-
-- Python 3.8+
-- AWS credentials configured (for Bedrock access)
-- uv or pip for package management
-
-### Setup
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd money-spender-agent
-```
+# Install dependencies
+npm install
+cd frontend && npm install && cd ..
 
-2. Install dependencies:
-```bash
-cd agent
-pip install -r requirements.txt
-```
+# Run the web app locally
+cd frontend && npm run dev
 
-3. Configure AWS credentials:
-```bash
-aws configure
+# Deploy to AWS
+npm run deploy
 ```
 
 ## Usage
 
-### Command Line
+### Web App
 
-Basic usage:
+The easiest way to use Bill Burner is through the web interface:
+
+1. Enter how much money you want to burn
+2. Choose your timeline (days)
+3. Select your stupidity level
+4. Pick an architecture style (serverless, kubernetes, traditional, mixed)
+5. Choose burning style (horizontal = steady waste, vertical = explosive bursts)
+6. Get roasted with a detailed breakdown of your wasteful infrastructure
+
+### CLI
+
+For command-line enthusiasts:
+
 ```bash
-python agent/main.py --amount "$2500" --timeline 30 --stupidity "Moderately stupid"
+cd agent
+python main.py --interactive
 ```
 
-### Parameters
-
-- `--amount`: Amount spent (e.g., "$1000", "₹50000")
-- `--timeline`: Timeline in days (e.g., 30, 14, 60)
-- `--stupidity`: Efficiency level
-  - `"Mildly dumb"`: Minor over-provisioning (10-30% waste)
-  - `"Moderately stupid"`: Significant waste (30-60% waste)
-  - `"Very stupid"`: Extreme over-engineering (60-85% waste)
-  - `"Brain damage"`: Maximum chaos (85-95% waste)
-- `--model`: (Optional) Bedrock model ID (default: amazon.nova-lite-v1:0)
-- `--interactive`: Run in interactive mode
-
-### Interactive Mode
+Or directly:
 
 ```bash
-python agent/main.py --interactive
+python main.py \
+  --amount "$5000" \
+  --timeline 30 \
+  --stupidity "Brain damage" \
+  --architecture kubernetes \
+  --burning-style vertical
 ```
 
-The interactive mode will prompt you for:
-1. Amount spent
-2. Timeline in days
-3. Efficiency level (1-4)
+#### CLI Arguments
 
-### Examples
+- `--amount` - How much to burn (e.g., "$1000" or "₹50000")
+- `--timeline` - Days to burn it over (e.g., 30, 14, 60)
+- `--stupidity` - Your inefficiency level:
+  - `Mildly dumb` - Rookie mistakes (10-30% waste)
+  - `Moderately stupid` - Significant waste (30-60% waste)
+  - `Very stupid` - Extreme over-engineering (60-85% waste)
+  - `Brain damage` - Maximum chaos (85-95% waste)
+- `--architecture` - Architecture style:
+  - `serverless` - Lambda, API Gateway, DynamoDB
+  - `kubernetes` - EKS, containers, orchestration
+  - `traditional` - EC2, RDS, classic infrastructure
+  - `mixed` - Chaotic combination of everything
+- `--burning-style` - How to waste it:
+  - `horizontal` - Steady waste over time
+  - `vertical` - Explosive one-shot bursts
+- `--model` - Bedrock model (optional, default: amazon.nova-lite-v1:0)
+- `--interactive` - Interactive mode
 
-Analyze $5000 over 45 days with high inefficiency:
+## Stupidity Levels
+
+### Mildly Dumb
+Rookie mistakes like leaving dev servers running 24/7, over-provisioned instances, forgotten test resources.
+
+### Moderately Stupid
+Running r7g.16xlarge instances for cron jobs, multiple redundant databases, CloudFront for internal apps.
+
+### Very Stupid
+EKS with 50 nodes for a single microservice, multi-region active-active for a personal blog, managed blockchain for a todo list.
+
+### Brain Damage
+AWS Snowmobile to transfer 100GB, quantum computing for 2+2, AWS Ground Station for weather widgets, Private 5G for a single IoT device.
+
+## Commands
+
 ```bash
-python agent/main.py --amount "$5000" --timeline 45 --stupidity "Very stupid"
-```
+# Deploy everything to AWS
+npm run deploy
 
-Analyze ₹50000 over 2 weeks with maximum waste:
-```bash
-python agent/main.py --amount "₹50000" --timeline 14 --stupidity "Brain damage"
-```
+# Frontend development
+cd frontend
+npm run dev          # Start dev server
+npm run build        # Build for production
+npm run lint         # Lint code
 
-Use a different model:
-```bash
-python agent/main.py --amount "$3000" --timeline 30 --stupidity "Moderately stupid" --model "amazon.nova-pro-v1:0"
+# Infrastructure
+npx cdk synth        # Generate CloudFormation
+npx cdk diff         # See what changed
+npx cdk destroy      # Tear it all down
+
+# Agent CLI
+cd agent
+python main.py --interactive
 ```
 
 ## Output
 
-The agent generates two outputs:
+Bill Burner generates detailed JSON reports with:
 
-### 1. Console Output
-
-Formatted, human-readable analysis with:
-- Analysis parameters (amount, timeline, efficiency level)
-- Services deployed with details
+- Service-by-service cost breakdown
+- Specific instance types and quantities
+- Timeline showing when services started/stopped
 - Deployment scenario narrative
 - Key mistakes identified
-- Recommendations for improvement
+- "Recommendations" (with a wink)
 
-### 2. JSON File (`spending_analysis.json`)
+Example output:
 
-Structured data including:
 ```json
 {
-  "total_amount": "$2500",
+  "total_amount": "$5000",
   "timeline_days": 30,
-  "efficiency_level": "Moderately stupid",
+  "efficiency_level": "Brain damage",
+  "architecture_type": "kubernetes",
+  "burning_style": "vertical",
   "services_deployed": [
     {
-      "service_name": "EC2",
-      "instance_type": "r7g.16xlarge",
-      "quantity": 1,
-      "unit_cost": 3.2256,
-      "total_cost": 2322.43,
-      "start_day": 0,
-      "end_day": 30,
-      "duration_used": "entire timeline",
-      "usage_pattern": "Running 24/7",
-      "waste_factor": "Expensive instance type for trivial workload"
+      "service_name": "EKS",
+      "instance_type": "m5.16xlarge nodes",
+      "quantity": 50,
+      "total_cost": 4800.00,
+      "waste_factor": "50 nodes for a hello world app"
     }
   ],
-  "total_calculated_cost": 2500.00,
   "deployment_scenario": "...",
-  "key_mistakes": [...],
-  "recommendations": [...]
+  "key_mistakes": ["..."],
+  "recommendations": ["..."]
 }
 ```
 
-## Efficiency Levels Explained
+## Tech Stack
 
-### Mildly Dumb (10-30% waste)
-Rookie mistakes like:
-- Over-provisioned instances (t3.2xlarge for static site)
-- Forgot to delete test resources
-- Running dev databases 24/7
-- NAT Gateway left running
+Vue 3, TypeScript, AWS Bedrock (for AI), AWS CDK, Python, Strands Agents
 
-### Moderately Stupid (30-60% waste)
-Significant over-provisioning:
-- Expensive instances for trivial workloads (r7g.16xlarge for cron job)
-- Multiple redundant databases
-- SageMaker notebooks running 24/7
-- CloudFront for internal apps
+## Disclaimer
 
-### Very Stupid (60-85% waste)
-Architectural disasters:
-- EKS with 50 nodes for single microservice
-- Multi-region setup for personal blog
-- AWS Outposts for cloud-native app
-- Managed Blockchain for todo list
-
-### Brain Damage (85-95% waste)
-Maximum chaos with obscure services:
-- AWS RoboMaker running 24/7
-- Ground Station for weather widget
-- Snowmobile to transfer 100GB
-- Braket quantum computing for basic math
-- Private 5G for single IoT device
-
-## Project Structure
-
-```
-.
-├── agent/
-│   ├── main.py                      # CLI entry point
-│   ├── money_spender_aws_agent.py   # Agent implementation
-│   ├── schema.py                    # Pydantic schemas
-│   └── requirements.txt             # Dependencies
-├── .kiro/
-│   ├── specs/                       # Feature specifications
-│   └── steering/                    # Development guidelines
-├── README.md                        # This file
-└── spending_analysis.json           # Generated output
-```
-
-## Development
-
-### Adding New Features
-
-1. Update schema in `agent/schema.py`
-2. Modify system prompt in `agent/money_spender_aws_agent.py`
-3. Update CLI in `agent/main.py` if needed
-4. Test with various scenarios
-5. Update documentation
-
-### Testing
-
-Test with different scenarios:
-```bash
-# Test all efficiency levels
-python agent/main.py --amount "$1000" --timeline 30 --stupidity "Mildly dumb"
-python agent/main.py --amount "$2000" --timeline 30 --stupidity "Moderately stupid"
-python agent/main.py --amount "$5000" --timeline 30 --stupidity "Very stupid"
-python agent/main.py --amount "$10000" --timeline 30 --stupidity "Brain damage"
-
-# Test different timelines
-python agent/main.py --amount "$2000" --timeline 7 --stupidity "Moderately stupid"
-python agent/main.py --amount "$2000" --timeline 60 --stupidity "Moderately stupid"
-python agent/main.py --amount "$2000" --timeline 90 --stupidity "Moderately stupid"
-```
-
-## Technologies Used
-
-- **Strands Agents**: AI agent framework
-- **Amazon Bedrock**: LLM inference (Nova models)
-- **Pydantic**: Data validation and structured output
-- **Python 3.8+**: Core language
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Follow the coding standards in `.kiro/steering/coding-standards.md`
-2. Reference AWS services guide in `.kiro/steering/aws-services-guide.md`
-3. Update documentation as needed
-4. Test thoroughly before submitting
-
-## License
-
-[Add your license here]
-
-## Acknowledgments
-
-- Built with [Strands Agents](https://strandsagents.com/)
-- Powered by Amazon Bedrock
-- AWS pricing data from [AWS Pricing Calculator](https://calculator.aws/)
-
-## Support
-
-For issues or questions:
-- Check the steering files in `.kiro/steering/`
-- Review the specs in `.kiro/specs/aws-cost-forensics/`
-- Open an issue on GitHub
-
----
-
-**Note**: This tool is for educational and analysis purposes. The spending scenarios generated are fictional and based on common AWS cost optimization mistakes.
+This is satire. Please don't actually deploy these configurations. Your AWS bill will not thank you. This tool is for educational purposes to learn about AWS services, pricing, and common cost optimization mistakes.
