@@ -1,13 +1,15 @@
-"""Money Spender Agent - A Strands agent that analyzes AWS cloud spending.
+"""Money Spend AWS Bill Agent - A Strands agent that analyzes AWS cloud spending and generates PDF invoices.
 
 This agent takes an amount and stupidity level, then reverse-engineers what AWS resources
-were likely spun up to result in that spending amount.
+were likely spun up to result in that spending amount. It generates a professional PDF invoice
+and uploads it to S3 with a presigned URL.
 """
 
 from __future__ import annotations
 
 import json
 import os
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from bedrock_agentcore import BedrockAgentCoreApp
@@ -155,7 +157,7 @@ def create_money_spender_agent(
     )
 
     agent = Agent(
-        name="money_spender_agent",
+        name="money_spend_aws_bill_agent",
         system_prompt=system_prompt,
         model=model_id or DEFAULT_MODEL_ID,
     )
@@ -316,6 +318,8 @@ Provide a detailed forensic analysis including all required fields."""
     result = agent(prompt, structured_output_model=SpendingAnalysis)
 
     # Extract structured output
+    analysis = None
+    
     if hasattr(result, "structured_output"):
         analysis = result.structured_output
     elif hasattr(result, "data"):
@@ -342,16 +346,50 @@ Provide a detailed forensic analysis including all required fields."""
             if text_content.endswith("```"):
                 text_content = text_content[:-3]
             
-            data = json.loads(text_content.strip())
-            analysis = SpendingAnalysis(**data)
-        else:
-            raise ValueError("Could not extract structured output from agent response")
+            try:
+                data = json.loads(text_content.strip())
+                analysis = SpendingAnalysis(**data)
+            except (json.JSONDecodeError, Exception):
+                analysis = None
+    
+    # Check if analysis was blocked by content filters
+    if analysis is None:
+        return {
+            "status": "error",
+            "error": "content_filtered",
+            "message": "The response was blocked by content filters. Try using a less extreme efficiency level (e.g., 'Very stupid' instead of 'Brain damage')."
+        }
 
-    # Return as dictionary
-    return {
-        "analysis": analysis.model_dump(),
-        "status": "success"
+    # Generate PDF invoice
+    from pdf_generator import generate_aws_bill_pdf
+    from s3_uploader import upload_pdf_to_s3
+    
+    pdf_bytes = generate_aws_bill_pdf(analysis)
+    
+    # Upload to S3 and get presigned URL
+    s3_result = upload_pdf_to_s3(pdf_bytes)
+    
+    # Add PDF info to the analysis
+    analysis_dict = analysis.model_dump()
+    
+    # Build PDF invoice info with error details if upload failed
+    pdf_invoice = {
+        "url": s3_result.get('s3_url'),
+        "s3_key": s3_result.get('s3_key'),
+        "bucket": s3_result.get('bucket'),
+        "expiration_seconds": s3_result.get('expiration_seconds'),
+        "upload_status": s3_result.get('status')
     }
+    
+    # Add error details if upload failed
+    if s3_result.get('status') == 'error':
+        pdf_invoice['error_code'] = s3_result.get('error_code')
+        pdf_invoice['error_message'] = s3_result.get('error_message')
+    
+    analysis_dict['pdf_invoice'] = pdf_invoice
+    
+    # Return the complete analysis directly
+    return analysis_dict
 
 
 if __name__ == "__main__":
