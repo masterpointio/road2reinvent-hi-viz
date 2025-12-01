@@ -1,25 +1,23 @@
 <template>
-  <div class="login-view">
-    <div class="login-card">
-      <div class="login-card__header">
-        <BillBurnerLogo class="login-card__logo" />
-        <h1>Welcome to Bill Burner</h1>
-        <p class="login-card__subtitle">Sign in to start burning money</p>
+  <div class="login-card">
+    <div class="login-card__header">
+      <BillBurnerLogo class="login-card__logo" />
+      <h1>Welcome to Bill Burner</h1>
+      <p class="login-card__subtitle">Sign in to start burning money</p>
+    </div>
+
+    <div class="login-card__content">
+      <div v-if="!hasCognitoConfig" class="demo-notice">
+        <p>⚠️ Cognito not configured</p>
+        <p class="demo-notice__text">Set VITE_COGNITO_DOMAIN and VITE_COGNITO_CLIENT_ID</p>
       </div>
 
-      <div class="login-card__content">
-        <div v-if="!hasCognitoConfig" class="demo-notice">
-          <p>⚠️ Cognito not configured</p>
-          <p class="demo-notice__text">Set VITE_COGNITO_DOMAIN and VITE_COGNITO_CLIENT_ID</p>
-        </div>
+      <UiButton variant="primary" size="large" @click="handleLogin" class="login-button">
+        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+      </UiButton>
 
-        <UiButton variant="primary" size="large" @click="handleLogin" class="login-button">
-          {{ isLoading ? 'Signing in...' : 'Sign In' }}
-        </UiButton>
-
-        <div class="login-card__footer">
-          <p>Don't have an account? <a href="#" @click.prevent="handleSignUp">Sign up</a></p>
-        </div>
+      <div class="login-card__footer">
+        <p>Don't have an account? <a href="#" @click.prevent="handleSignUp">Sign up</a></p>
       </div>
     </div>
   </div>
@@ -61,36 +59,26 @@ const handleSignUp = () => {
 </script>
 
 <style scoped>
-.login-view {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-background) 0%, #0a0a0f 100%);
-  padding: var(--space-lg);
-}
-
 .login-card {
   width: 100%;
-  max-width: 420px;
-  background: var(--color-surface);
-  border-radius: var(--border-radius-xl);
-  border: 2px solid var(--color-border);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   overflow: hidden;
 }
 
 .login-card__header {
   text-align: center;
-  padding: var(--space-xxl) var(--space-xl) var(--space-xl);
+  padding: 30px;
   background: linear-gradient(135deg, rgba(192, 255, 0, 0.1), rgba(255, 0, 110, 0.1));
   border-bottom: 2px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .login-card__logo {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--space-lg);
+  margin: var(--space-xl) auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .login-card__header h1 {

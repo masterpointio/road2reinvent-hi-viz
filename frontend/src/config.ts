@@ -21,7 +21,7 @@ const getCognitoLoginUrl = (): string => {
 
 export const config = {
   // Application
-  appName: 'R2R App',
+  appName: 'Bill Burner',
 
   // API Configuration
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '',
