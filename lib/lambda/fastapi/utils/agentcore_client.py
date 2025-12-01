@@ -218,7 +218,7 @@ Focus on the absurdity of the spending choices."""
                     agentRuntimeArn=self.agent_runtime_arn,
                     runtimeSessionId=session_id,
                     payload=payload,
-                    qualifier="DEFAULT"
+                    qualifier="LATEST"
                 )
 
                 elapsed = time.time() - start_time
