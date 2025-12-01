@@ -140,13 +140,32 @@
         </div>
       </UiCard>
 
-      <!-- AI Roasts -->
+      <!-- Recent Burn Plans -->
       <UiCard class="dashboard__card dashboard__card--roasts">
-        <template #header>Latest Roasts 🔥</template>
-        <div class="roasts">
-          <div v-for="(roast, index) in latestRoasts" :key="index" class="roast">
-            <div class="roast__icon">💬</div>
-            <div class="roast__text">{{ roast }}</div>
+        <template #header>Recent Burn Plans 🔥</template>
+        <div v-if="burnPlansLoading" class="roasts__loading">
+          Loading recent burns...
+        </div>
+        <div v-else-if="burnPlansError" class="roasts__error">
+          {{ burnPlansError }}
+        </div>
+        <div v-else-if="recentPlans.length === 0" class="roasts__empty">
+          No burn plans yet. Start your first burn!
+        </div>
+        <div v-else class="roasts">
+          <div v-for="plan in recentPlans" :key="plan.id" class="roast">
+            <div class="roast__icon">💸</div>
+            <div class="roast__content">
+              <div class="roast__header">
+                <span class="roast__amount">{{ plan.burn_plan.total_amount }}</span>
+                <span class="roast__time">{{ formatTimeAgo(plan.timestamp) }}</span>
+              </div>
+              <div class="roast__text">{{ plan.burn_plan.deployment_scenario }}</div>
+              <div class="roast__meta">
+                <span class="roast__efficiency">{{ plan.burn_plan.efficiency_level }}</span>
+                <span class="roast__timeline">{{ plan.burn_plan.timeline_days }} days</span>
+              </div>
+            </div>
           </div>
         </div>
       </UiCard>
@@ -172,6 +191,7 @@ import { mockBurnPlan } from '../data/mockBurnPlan';
 import { convertToChartData, scaleBurnPlan } from '../types/burnPlan';
 import type { BurnPlanResponse } from '../types/burnPlan';
 import { generateRandomAchievement } from '../utils/achievementGenerator';
+import { useRecentBurnPlans } from '../composables/useRecentBurnPlans';
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { BarChart, LineChart, PieChart } from 'echarts/charts';
@@ -199,10 +219,19 @@ use([
 
 const router = useRouter();
 
+// Recent burn plans
+const {
+  recentPlans,
+  loading: burnPlansLoading,
+  error: burnPlansError,
+  fetchRecentPlans,
+  formatTimeAgo,
+} = useRecentBurnPlans();
+
 // Load burn plan from session storage or use mock
 const loadedBurnPlan = ref<BurnPlanResponse | null>(null);
 
-onMounted(() => {
+onMounted(async () => {
   const stored = sessionStorage.getItem('currentBurnPlan');
   if (stored) {
     try {
@@ -214,6 +243,9 @@ onMounted(() => {
   } else {
     loadedBurnPlan.value = mockBurnPlan;
   }
+
+  // Fetch recent burn plans
+  await fetchRecentPlans(5);
 });
 
 // Use loaded burn plan data
@@ -263,11 +295,7 @@ const recentBurns = ref([
   { id: 4, amount: 8500, style: 'Vertical', timeAgo: '2 hours ago', status: 'completed' },
 ]);
 
-const latestRoasts = ref([
-  "You've burned $5,000 - that's 2,500 burritos you'll never eat. Hope those EC2 instances are keeping you warm at night.",
-  "Congrats! You just spent the equivalent of 83 Netflix subscriptions on NAT Gateways. At least Netflix has content.",
-  "That RDS cluster costs more per hour than most people make. But hey, your 3 users will appreciate the redundancy.",
-]);
+
 
 const neonColors = {
   hiviz: '#c0ff00',
@@ -837,6 +865,19 @@ watch(chartData, (newData) => {
   gap: var(--space-md);
 }
 
+.roasts__loading,
+.roasts__error,
+.roasts__empty {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.roasts__error {
+  color: var(--color-danger);
+}
+
 .roast {
   display: flex;
   gap: var(--space-md);
@@ -844,6 +885,12 @@ watch(chartData, (newData) => {
   background: var(--color-surface-soft);
   border-radius: var(--border-radius-md);
   border-left: 3px solid var(--color-primary);
+  transition: all 0.2s;
+}
+
+.roast:hover {
+  background: var(--color-surface);
+  transform: translateX(4px);
 }
 
 .roast__icon {
@@ -851,11 +898,61 @@ watch(chartData, (newData) => {
   flex-shrink: 0;
 }
 
+.roast__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.roast__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.roast__amount {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.roast__time {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .roast__text {
   font-size: 0.875rem;
   color: var(--color-text);
   line-height: 1.5;
   font-style: italic;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.roast__meta {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+.roast__efficiency {
+  padding: 2px 8px;
+  background: var(--color-surface);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--color-primary);
+}
+
+.roast__timeline {
+  padding: 2px 8px;
+  background: var(--color-surface);
+  border-radius: var(--border-radius-sm);
 }
 
 /* Status Badge */
