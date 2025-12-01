@@ -55,12 +55,39 @@ python main.py \
   --burning-style vertical
 ```
 
+#### CLI Arguments
+
+- `--amount` - How much to burn (e.g., "$1000" or "₹50000")
+- `--timeline` - Days to burn it over (e.g., 30, 14, 60)
+- `--stupidity` - Your inefficiency level:
+  - `Mildly dumb` - Rookie mistakes (10-30% waste)
+  - `Moderately stupid` - Significant waste (30-60% waste)
+  - `Very stupid` - Extreme over-engineering (60-85% waste)
+  - `Brain damage` - Maximum chaos (85-95% waste)
+- `--architecture` - Architecture style:
+  - `serverless` - Lambda, API Gateway, DynamoDB
+  - `kubernetes` - EKS, containers, orchestration
+  - `traditional` - EC2, RDS, classic infrastructure
+  - `mixed` - Chaotic combination of everything
+- `--burning-style` - How to waste it:
+  - `horizontal` - Steady waste over time
+  - `vertical` - Explosive one-shot bursts
+- `--model` - Bedrock model (optional, default: amazon.nova-lite-v1:0)
+- `--interactive` - Interactive mode
+
 ## Stupidity Levels
 
-- **Mildly dumb** - Rookie mistakes, like leaving dev servers running 24/7
-- **Moderately stupid** - Running r7g.16xlarge instances for cron jobs
-- **Very stupid** - Multi-region active-active for a personal blog
-- **Brain damage** - AWS Snowmobile to transfer 100GB, quantum computing for 2+2
+### Mildly Dumb
+Rookie mistakes like leaving dev servers running 24/7, over-provisioned instances, forgotten test resources.
+
+### Moderately Stupid
+Running r7g.16xlarge instances for cron jobs, multiple redundant databases, CloudFront for internal apps.
+
+### Very Stupid
+EKS with 50 nodes for a single microservice, multi-region active-active for a personal blog, managed blockchain for a todo list.
+
+### Brain Damage
+AWS Snowmobile to transfer 100GB, quantum computing for 2+2, AWS Ground Station for weather widgets, Private 5G for a single IoT device.
 
 ## Commands
 
@@ -78,12 +105,51 @@ npm run lint         # Lint code
 npx cdk synth        # Generate CloudFormation
 npx cdk diff         # See what changed
 npx cdk destroy      # Tear it all down
+
+# Agent CLI
+cd agent
+python main.py --interactive
+```
+
+## Output
+
+Bill Burner generates detailed JSON reports with:
+
+- Service-by-service cost breakdown
+- Specific instance types and quantities
+- Timeline showing when services started/stopped
+- Deployment scenario narrative
+- Key mistakes identified
+- "Recommendations" (with a wink)
+
+Example output:
+
+```json
+{
+  "total_amount": "$5000",
+  "timeline_days": 30,
+  "efficiency_level": "Brain damage",
+  "architecture_type": "kubernetes",
+  "burning_style": "vertical",
+  "services_deployed": [
+    {
+      "service_name": "EKS",
+      "instance_type": "m5.16xlarge nodes",
+      "quantity": 50,
+      "total_cost": 4800.00,
+      "waste_factor": "50 nodes for a hello world app"
+    }
+  ],
+  "deployment_scenario": "...",
+  "key_mistakes": ["..."],
+  "recommendations": ["..."]
+}
 ```
 
 ## Tech Stack
 
-Vue 3, TypeScript, AWS Bedrock (for AI), AWS CDK, Python
+Vue 3, TypeScript, AWS Bedrock (for AI), AWS CDK, Python, Strands Agents
 
 ## Disclaimer
 
-This is satire. Please don't actually deploy these configurations. Your AWS bill will not thank you.
+This is satire. Please don't actually deploy these configurations. Your AWS bill will not thank you. This tool is for educational purposes to learn about AWS services, pricing, and common cost optimization mistakes.

@@ -1,0 +1,30 @@
+default_agent: money_spend_aws_bill_agent
+agents:
+  money_spend_aws_bill_agent:
+    name: money_spend_aws_bill_agent
+    entrypoint: money_spend_aws_bill_agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::114713347049:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-ba3cea6614
+      execution_role_auto_create: true
+      account: '114713347049'
+      region: us-east-1
+      ecr_repository: 114713347049.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-money_spend_aws_bill_agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: money_spend_aws_bill_agent-4UONHCBVbf
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spend_aws_bill_agent-4UONHCBVbf
+      agent_session_id: 867d0243-5a94-4445-9cda-37ec52980b5e
+    codebuild:
+      project_name: null
+      execution_role: null
+      source_bucket: null
+    authorizer_configuration: null
+    oauth_configuration: null
