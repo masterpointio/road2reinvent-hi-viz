@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -43,11 +43,15 @@ class BurnPlan(BaseModel):
     total_amount: str = Field(description="Total spending amount")
     timeline_days: int = Field(description="Timeline in days")
     efficiency_level: str = Field(description="Efficiency level")
+    architecture_type: Optional[str] = Field(default=None, description="Architecture type")
+    burning_style: Optional[str] = Field(default=None, description="Burning style")
     services_deployed: List[ServiceCost] = Field(description="List of AWS services deployed")
     total_calculated_cost: float = Field(description="Sum of all service costs")
     deployment_scenario: str = Field(description="Narrative description of deployment")
     key_mistakes: List[str] = Field(description="List of key mistakes made")
     recommendations: List[str] = Field(description="List of recommendations")
+    roast: Optional[str] = Field(default=None, description="Roast commentary")
+    pdf_invoice: Optional[Dict[str, Any]] = Field(default=None, description="PDF invoice details")
 
 
 class BurnPlanRequest(BaseModel):
@@ -59,8 +63,8 @@ class BurnPlanRequest(BaseModel):
 class BurnPlanResponse(BaseModel):
     """Response model for burn plan generation."""
 
-    session_id: str = Field(description="Unique session identifier")
-    burn_plan: BurnPlan = Field(description="Generated burn plan")
+    analysis: BurnPlan = Field(description="Generated burn plan analysis")
+    status: str = Field(default="success", description="Response status")
 
 
 class RoastRequest(BaseModel):

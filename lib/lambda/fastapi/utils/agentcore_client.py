@@ -234,6 +234,20 @@ Focus on the absurdity of the spending choices."""
                 if not response_data or not isinstance(response_data, dict):
                     raise AgentCoreError("Invalid response format from agent")
 
+                # Log full response for debugging
+                print(f"Full AgentCore response: {json.dumps(response_data, indent=2)}")
+                
+                # Check if pdf_invoice is in the response
+                if 'pdf_invoice' in response_data:
+                    print(f"✓ pdf_invoice found in AgentCore response")
+                elif 'analysis' in response_data and isinstance(response_data['analysis'], dict):
+                    if 'pdf_invoice' in response_data['analysis']:
+                        print(f"✓ pdf_invoice found in response['analysis']")
+                    else:
+                        print(f"⚠ pdf_invoice NOT found in response['analysis']")
+                else:
+                    print(f"⚠ pdf_invoice NOT found in AgentCore response")
+
                 return response_data
 
             except self.client.exceptions.ThrottlingException as e:

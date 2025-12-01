@@ -52,7 +52,15 @@ class StrandsService:
             else:
                 burn_plan_data = response
             
+            # Log the burn plan data for debugging
+            print(f"Burn plan data being parsed: {json.dumps(burn_plan_data, indent=2)}")
+            
             burn_plan = BurnPlan(**burn_plan_data)
+            
+            # Log the parsed burn plan to verify pdf_invoice is included
+            print(f"Parsed burn plan includes pdf_invoice: {burn_plan.pdf_invoice is not None}")
+            if burn_plan.pdf_invoice:
+                print(f"PDF invoice details: {json.dumps(burn_plan.pdf_invoice, indent=2)}")
         except Exception as e:
             raise AgentCoreError(f"Failed to parse burn plan response: {e}")
 
