@@ -14,7 +14,7 @@ export const useToasts = () => {
   const showToast = (
     message: string,
     type: Toast['type'] = 'info',
-    timeout: number = 5000
+    timeout: number = 7000
   ) => {
     const id = `toast-${++toastIdCounter}`;
     const toast: Toast = { id, message, type, timeout };

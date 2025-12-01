@@ -131,7 +131,7 @@
         </UiCard>
 
         <!-- Mistakes -->
-        <UiCard class="burn-results__card">
+        <UiCard class="burn-results__card burn-results__card--full">
           <template #header>Key Mistakes</template>
           <ul class="mistakes-list">
             <li v-for="(mistake, idx) in burnPlan.key_mistakes" :key="idx">{{ mistake }}</li>
@@ -139,7 +139,7 @@
         </UiCard>
 
         <!-- Recommendations -->
-        <UiCard class="burn-results__card">
+        <UiCard class="burn-results__card burn-results__card--full">
           <template #header>Recommendations</template>
           <ul class="recommendations-list">
             <li v-for="(rec, idx) in burnPlan.recommendations" :key="idx">{{ rec }}</li>
@@ -250,8 +250,12 @@ const generateRoasts = () => {
   
   if (roasts.value.length > 0 && roasts.value[0]) {
     currentRoast.value = roasts.value[0];
-    startTypewriter(burnPlan.value.roast || '');
   }
+  
+  // Start typewriter with overall roast or generate fallback
+  const overallRoast = burnPlan.value.roast || 
+    `You just burned $${burnPlan.value.total_calculated_cost.toLocaleString()} in ${burnPlan.value.timeline_days} days. ${burnPlan.value.deployment_scenario}`;
+  startTypewriter(overallRoast);
 };
 
 const startTypewriter = (text: string) => {
@@ -303,10 +307,26 @@ const goBack = () => {
   router.push('/app/burn-config');
 };
 
-// Get the maximum cost for fixed Y-axis scaling
+// Get the maximum cost for dynamic Y-axis scaling based on daily data
 const maxCost = computed(() => {
+  if (!burnPlan.value || !chartData.value) return 10000;
+  
+  // Find the maximum daily cost from the timeline data
+  const maxDailyValue = Math.max(...chartData.value.timelineData.values);
+  
+  // Add 10% buffer for better visualization
+  return Math.ceil(maxDailyValue * 1.1);
+});
+
+// Get the maximum single service cost for stacked area chart
+const maxStackedAreaCost = computed(() => {
   if (!burnPlan.value) return 10000;
-  return burnPlan.value.total_calculated_cost;
+  
+  // Find the largest single service cost
+  const maxServiceCost = Math.max(...burnPlan.value.services_deployed.map(s => s.total_cost));
+  
+  // Add 20% buffer for better visualization
+  return Math.ceil(maxServiceCost * 1.2);
 });
 
 // Get the maximum daily cost for the stacked bar chart
@@ -331,18 +351,23 @@ const topServicesOption = computed(() => ({
   backgroundColor: 'transparent',
   animationDuration: ANIMATION_DURATION,
   animationEasing: 'cubicOut' as const,
-  grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
+  grid: { left: '35%', right: '15%', top: '5%', bottom: '5%' },
   xAxis: {
     type: 'value',
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
+    axisLabel: { color: '#fff', formatter: '${value}', fontSize: 10 },
     splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
   },
   yAxis: {
     type: 'category',
     data: chartData.value?.racingBarData.map((item) => item.name) || [],
     axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', fontSize: 11 },
+    axisLabel: { 
+      color: '#fff', 
+      fontSize: 10,
+      overflow: 'truncate',
+      width: 150,
+    },
     inverse: true,
   },
   series: [
@@ -371,7 +396,8 @@ const topServicesOption = computed(() => ({
         position: 'right',
         color: '#fff',
         formatter: '${c}',
-        fontSize: 11,
+        fontSize: 10,
+        distance: 5,
       },
       barWidth: '60%',
     },
@@ -507,7 +533,7 @@ const stackedAreaOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      max: maxCost.value,
+      max: maxStackedAreaCost.value,
       axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
       axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
       splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
