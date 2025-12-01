@@ -226,7 +226,7 @@ export class R2RStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(29),
       memorySize: 512,
       environment: {
-        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spender_aws_agent-VDHCzRHLoE',
+        AGENTCORE_AGENT_RUNTIME_ARN: 'arn:aws:bedrock-agentcore:us-east-1:114713347049:runtime/money_spend_aws_bill_agent-4UONHCBVbf',
         BURN_PLANS_TABLE_NAME: burnPlansTable.tableName,
       },
       bundling: {
