@@ -56,12 +56,15 @@ const storeTokens = (access: string, id?: string) => {
   // Decode ID token to get user info
   if (id) {
     try {
-      const payload = JSON.parse(atob(id.split('.')[1]));
-      user.value = {
-        email: payload.email || payload.sub,
-        token: access,
-      };
-      localStorage.setItem('auth_user', JSON.stringify(user.value));
+      const parts = id.split('.');
+      if (parts[1]) {
+        const payload = JSON.parse(atob(parts[1]));
+        user.value = {
+          email: payload.email || payload.sub,
+          token: access,
+        };
+        localStorage.setItem('auth_user', JSON.stringify(user.value));
+      }
     } catch (error) {
       console.error('Failed to decode ID token:', error);
     }
