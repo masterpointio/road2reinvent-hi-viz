@@ -34,14 +34,9 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
     children: [
       {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('../views/DashboardView.vue'),
-      },
-      {
-        path: 'items',
-        name: 'items',
-        component: () => import('../views/ItemsListView.vue'),
+        path: '',
+        name: 'app-landing',
+        component: () => import('../views/LandingView.vue'),
       },
       {
         path: 'burn-config',
@@ -56,31 +51,8 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-    path: '/components',
-    component: AppLayout,
-    children: [
-      {
-        path: '',
-        name: 'components',
-        component: () => import('../views/ComponentsShowcaseView.vue'),
-      },
-    ],
-  },
-  {
-    path: '/charts',
-    component: AppLayout,
-    children: [
-      {
-        path: '',
-        name: 'charts',
-        component: () => import('../views/ChartsShowcaseView.vue'),
-      },
-    ],
-  },
-  {
     path: '/',
-    name: 'landing',
-    component: () => import('../views/LandingView.vue'),
+    redirect: '/login',
   },
 ]
 

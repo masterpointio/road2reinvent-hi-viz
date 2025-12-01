@@ -1,100 +1,101 @@
 import { ref, computed } from 'vue';
-import { config, getCognitoLogoutUrl } from '../config';
+import { config } from '../config';
 
 interface User {
-  email?: string;
-  sub?: string;
-  [key: string]: any;
+  email: string;
+  token: string;
 }
 
+interface TokenResponse {
+  access_token: string;
+  id_token: string;
+  refresh_token?: string;
+  token_type: string;
+  expires_in: number;
+}
+
+// Global auth state
+const user = ref<User | null>(null);
 const accessToken = ref<string | null>(null);
 const idToken = ref<string | null>(null);
-const user = ref<User | null>(null);
+const isAuthenticated = computed(() => user.value !== null && accessToken.value !== null);
 
-const TOKEN_KEY = 'auth_token';
-const ID_TOKEN_KEY = 'id_token';
-const USER_KEY = 'auth_user';
+// Check for existing session on load
+const initAuth = () => {
+  const storedUser = localStorage.getItem('auth_user');
+  const storedAccessToken = localStorage.getItem('auth_access_token');
+  const storedIdToken = localStorage.getItem('auth_id_token');
+  
+  if (storedUser && storedAccessToken) {
+    try {
+      user.value = JSON.parse(storedUser);
+      accessToken.value = storedAccessToken;
+      idToken.value = storedIdToken;
+    } catch (error) {
+      console.error('Failed to parse stored auth:', error);
+      clearAuthStorage();
+    }
+  }
+};
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_access_token');
+  localStorage.removeItem('auth_id_token');
+};
+
+const storeTokens = (access: string, id?: string) => {
+  accessToken.value = access;
+  idToken.value = id || null;
+  
+  localStorage.setItem('auth_access_token', access);
+  if (id) {
+    localStorage.setItem('auth_id_token', id);
+  }
+  
+  // Decode ID token to get user info
+  if (id) {
+    try {
+      const parts = id.split('.');
+      if (parts[1]) {
+        const payload = JSON.parse(atob(parts[1]));
+        user.value = {
+          email: payload.email || payload.sub,
+          token: access,
+        };
+        localStorage.setItem('auth_user', JSON.stringify(user.value));
+      }
+    } catch (error) {
+      console.error('Failed to decode ID token:', error);
+    }
+  }
+};
+
+// Initialize on module load
+initAuth();
 
 export const useAuth = () => {
-  const isAuthenticated = computed(() => !!accessToken.value);
-
-  const parseJwt = (token: string): any => {
-    try {
-      const base64Url = token.split('.')[1];
-      if (!base64Url) return null;
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (error) {
-      console.error('Failed to parse JWT:', error);
-      return null;
-    }
-  };
-
-  const storeTokens = (access: string, id?: string) => {
-    accessToken.value = access;
-    localStorage.setItem(TOKEN_KEY, access);
-
-    if (id) {
-      idToken.value = id;
-      localStorage.setItem(ID_TOKEN_KEY, id);
-
-      const userData = parseJwt(id);
-      if (userData) {
-        user.value = userData;
-        localStorage.setItem(USER_KEY, JSON.stringify(userData));
-      }
-    }
-  };
-
-  const clearTokens = () => {
-    accessToken.value = null;
-    idToken.value = null;
-    user.value = null;
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(ID_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  };
-
-  const restoreSession = () => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    const storedIdToken = localStorage.getItem(ID_TOKEN_KEY);
-    const storedUser = localStorage.getItem(USER_KEY);
-
-    if (storedToken) {
-      accessToken.value = storedToken;
-    }
-
-    if (storedIdToken) {
-      idToken.value = storedIdToken;
-    }
-
-    if (storedUser) {
-      try {
-        user.value = JSON.parse(storedUser);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-      }
-    }
-  };
-
-  const login = () => {
-    if (!config.cognitoLoginUrl) {
-      console.error('VITE_COGNITO_LOGIN_URL is not configured');
-      return;
-    }
-    window.location.href = config.cognitoLoginUrl;
+  const login = async (credentials: { email: string; token: string }) => {
+    // For demo/testing purposes - direct token storage
+    user.value = {
+      email: credentials.email,
+      token: credentials.token,
+    };
+    accessToken.value = credentials.token;
+    
+    localStorage.setItem('auth_user', JSON.stringify(user.value));
+    localStorage.setItem('auth_access_token', credentials.token);
   };
 
   const logout = () => {
-    clearTokens();
-    const logoutUrl = getCognitoLogoutUrl();
-    window.location.href = logoutUrl;
+    user.value = null;
+    accessToken.value = null;
+    idToken.value = null;
+    clearAuthStorage();
+  };
+
+  const getAuthToken = (): string | null => {
+    return accessToken.value;
   };
 
   const handleCallback = async () => {
@@ -110,11 +111,13 @@ export const useAuth = () => {
       throw new Error(urlParams.get('error_description') || 'Authentication failed');
     }
 
+    // If tokens are in URL (implicit flow), store them directly
     if (accessTokenParam) {
       storeTokens(accessTokenParam, idTokenParam || undefined);
       return;
     }
 
+    // If we have an authorization code, exchange it for tokens
     if (code) {
       const cognitoDomain = config.cognitoDomain;
       const clientId = config.cognitoClientId;
@@ -143,7 +146,7 @@ export const useAuth = () => {
           throw new Error(errorData.error_description || 'Token exchange failed');
         }
 
-        const tokens = await response.json();
+        const tokens: TokenResponse = await response.json();
         storeTokens(tokens.access_token, tokens.id_token);
         return;
       } catch (error) {
@@ -155,14 +158,13 @@ export const useAuth = () => {
     throw new Error('No authentication code or tokens found');
   };
 
-  restoreSession();
-
   return {
+    user: computed(() => user.value),
+    accessToken: computed(() => accessToken.value),
     isAuthenticated,
-    user,
-    accessToken,
     login,
     logout,
+    getAuthToken,
     handleCallback,
   };
 };

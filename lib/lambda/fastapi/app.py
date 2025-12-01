@@ -46,6 +46,7 @@ def root():
         "endpoints": {
             "health": "/health",
             "burn_plan": "/burn-plan (POST)",
+            "burn_plan_recent": "/burn-plan/recent (GET)",
             "roast": "/roast (POST)"
         }
     }

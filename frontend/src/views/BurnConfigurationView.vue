@@ -128,9 +128,9 @@
         </div>
 
         <template #footer>
-          <UiButton variant="secondary" @click="resetForm">Reset</UiButton>
-          <UiButton variant="primary" :disabled="!isFormValid" @click="startBurn">
-            🔥 Start Burning
+          <UiButton variant="secondary" @click="resetForm" :disabled="isBurnPlanLoading">Reset</UiButton>
+          <UiButton variant="primary" :disabled="!isFormValid || isBurnPlanLoading" @click="startBurn">
+            {{ isBurnPlanLoading ? '🔥 Generating...' : '🔥 Start Burning' }}
           </UiButton>
         </template>
       </UiCard>
@@ -142,14 +142,14 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToasts } from '../composables/useToasts';
-import { useBurnPlan } from '../composables/useBurnPlan';
+import { useApi } from '../composables/useApi';
 import type { BurnPlanResponse, ServiceDeployment } from '../types/burnPlan';
 import UiCard from '../components/UiCard.vue';
 import UiButton from '../components/UiButton.vue';
 
 const router = useRouter();
 const { success, error: showError } = useToasts();
-const { createBurnPlan, isLoading: isBurnPlanLoading } = useBurnPlan();
+const isBurnPlanLoading = ref(false);
 
 interface BurnConfig {
   totalAmount: number | null;
@@ -248,30 +248,53 @@ const resetForm = () => {
 };
 
 const startBurn = async () => {
-  if (!isFormValid.value || !config.value.totalAmount) return;
-
-  success('Generating your burn plan...');
-
-  const burnPlan = await createBurnPlan({
-    totalAmount: config.value.totalAmount,
-    timeline: config.value.timeline ? `${config.value.timeline}d` : '30d',
-    architecture: config.value.architecture,
-    burningStyle: config.value.burningStyle,
-    efficiencyLevel: config.value.efficiencyLevel,
-  });
-
-  if (!burnPlan) {
-    showError('Failed to generate burn plan. Please try again.');
+  if (!isFormValid.value || !config.value.totalAmount || !config.value.timeline) {
     return;
   }
 
-  sessionStorage.setItem('currentBurnPlan', JSON.stringify(burnPlan));
+  isBurnPlanLoading.value = true;
+  success('Generating your burn plan...');
 
-  success('Burn plan generated! Redirecting...');
+  // Make API call directly to store raw response
+  try {
+    const stupidityMap: Record<number, string> = {
+      1: 'Mildly dumb',
+      2: 'Mildly dumb',
+      3: 'Moderately stupid',
+      4: 'Moderately stupid',
+      5: 'Moderately stupid',
+      6: 'Very stupid',
+      7: 'Very stupid',
+      8: 'Very stupid',
+      9: 'Brain damage',
+      10: 'Brain damage',
+    };
 
-  setTimeout(() => {
-    router.push('/app/burn-results');
-  }, 500);
+    const { post } = useApi();
+    const response = await post<any>('/api/burn-plan', {
+      config: {
+        amount: `$${config.value.totalAmount}`,
+        timeline: config.value.timeline,
+        architecture: config.value.architecture,
+        burning_style: config.value.burningStyle,
+        stupidity: stupidityMap[config.value.efficiencyLevel] || 'Moderately stupid',
+      },
+    });
+
+    // Store the raw backend response (BurnResultsView expects this format)
+    sessionStorage.setItem('currentBurnPlan', JSON.stringify(response.burn_plan));
+
+    success('Burn plan generated! Redirecting...');
+
+    setTimeout(() => {
+      router.push('/app/burn-results');
+    }, 500);
+  } catch (err) {
+    showError('Failed to generate burn plan. Please try again.');
+    console.error('Error in startBurn:', err);
+  } finally {
+    isBurnPlanLoading.value = false;
+  }
 };
 
 function generateMockBurnPlan(cfg: BurnConfig): BurnPlanResponse {

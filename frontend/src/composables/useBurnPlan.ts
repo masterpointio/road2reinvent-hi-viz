@@ -3,9 +3,9 @@ import { apiClient } from '../lib/apiClient';
 
 export interface BurnConfig {
   totalAmount: number;
-  timeline: string;
-  architecture: string;
-  burningStyle: string;
+  timeline: number;
+  architecture: 'serverless' | 'kubernetes' | 'traditional' | 'mixed';
+  burningStyle: 'horizontal' | 'vertical';
   efficiencyLevel: number;
 }
 
@@ -81,15 +81,37 @@ export const useBurnPlan = () => {
     error.value = null;
 
     try {
-      const response = await apiClient.post<BurnPlanApiResponse>('/burn-plan', {
+      // Map efficiency level to stupidity label
+      const stupidityMap: Record<number, string> = {
+        1: 'Mildly dumb',
+        2: 'Mildly dumb',
+        3: 'Moderately stupid',
+        4: 'Moderately stupid',
+        5: 'Moderately stupid',
+        6: 'Very stupid',
+        7: 'Very stupid',
+        8: 'Very stupid',
+        9: 'Brain damage',
+        10: 'Brain damage',
+      };
+
+      console.log('Creating burn plan with config:', config);
+      
+      const requestPayload = {
         config: {
-          total_amount: config.totalAmount,
+          amount: `$${config.totalAmount}`,
           timeline: config.timeline,
           architecture: config.architecture,
           burning_style: config.burningStyle,
-          efficiency_level: config.efficiencyLevel,
+          stupidity: stupidityMap[config.efficiencyLevel] || 'Moderately stupid',
         },
-      });
+      };
+      
+      console.log('Request payload:', requestPayload);
+      
+      const response = await apiClient.post<BurnPlanApiResponse>('/api/burn-plan', requestPayload);
+      
+      console.log('Response received:', response);
 
       // Return the analysis object which contains all burn plan data including pdf_invoice
       return response.analysis;

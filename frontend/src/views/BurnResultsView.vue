@@ -10,6 +10,19 @@
       </UiButton>
     </div>
 
+    <!-- Overall Progress Meter -->
+    <div v-if="burnPlan && animationProgress < 1" class="burn-results__progress">
+      <div class="progress-meter">
+        <div class="progress-meter__header">
+          <span class="progress-meter__label">🔥 Burning Money...</span>
+          <span class="progress-meter__percentage">{{ Math.round(animationProgress * 100) }}%</span>
+        </div>
+        <div class="progress-meter__bar">
+          <div class="progress-meter__fill" :style="{ width: `${animationProgress * 100}%` }"></div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="!burnPlan" class="burn-results__empty">
       <p>No burn plan found. Please configure a burn first.</p>
       <UiButton variant="primary" @click="goBack">
@@ -53,55 +66,47 @@
         </div>
       </div>
 
-      <!-- Overall Roast Widget -->
-      <UiCard v-if="burnPlan?.roast" class="burn-results__roast-card">
-        <template #header>🔥 Overall Roast</template>
-        <div class="overall-roast">
-          <div class="overall-roast__icon">💬</div>
-          <div class="overall-roast__text">{{ burnPlan.roast }}</div>
-        </div>
-      </UiCard>
-
       <!-- Charts -->
       <div class="burn-results__content">
-        <!-- Stacked Area Chart -->
-        <UiCard class="burn-results__card burn-results__card--full">
-          <template #header>💸 Money Burn Over Time (Stacked Area)</template>
-          <v-chart class="burn-results__chart" :option="stackedAreaOption" autoresize />
+        <!-- Row 1: Three Column Layout -->
+        <UiCard class="burn-results__card burn-results__card--third">
+          <template #header>🔥 Burn Rate</template>
+          <v-chart class="burn-results__chart burn-results__chart--compact" :option="gaugeOption" autoresize />
         </UiCard>
 
-        <!-- Gauge Chart -->
-        <UiCard class="burn-results__card">
-          <template #header>🔥 Burn Rate Meter</template>
-          <v-chart class="burn-results__chart burn-results__chart--gauge" :option="gaugeOption" autoresize />
+        <UiCard class="burn-results__card burn-results__card--third">
+          <template #header>💰 Cost by Service</template>
+          <v-chart class="burn-results__chart burn-results__chart--compact" :option="topServicesOption" autoresize />
         </UiCard>
 
-        <!-- Racing Bar Chart -->
-        <UiCard class="burn-results__card">
+        <UiCard class="burn-results__card burn-results__card--third">
+          <template #header>📈 Cost Distribution</template>
+          <v-chart class="burn-results__chart burn-results__chart--compact" :option="pieChartOption" autoresize />
+        </UiCard>
+
+        <!-- Row 2: Cost Over Time and Service Burn Race -->
+        <UiCard class="burn-results__card burn-results__card--half">
+          <template #header>📉 Cost Over Time</template>
+          <v-chart class="burn-results__chart burn-results__chart--medium" :option="timelineChartOption" autoresize />
+        </UiCard>
+
+        <UiCard class="burn-results__card burn-results__card--half">
           <template #header>🏁 Service Burn Race</template>
-          <v-chart class="burn-results__chart" :option="racingBarOption" autoresize />
+          <v-chart class="burn-results__chart burn-results__chart--medium" :option="racingBarOption" autoresize />
         </UiCard>
 
-        <!-- Stacked Bar Timeline -->
-        <UiCard class="burn-results__card burn-results__card--full">
-          <template #header>📊 Daily Burn Breakdown</template>
-          <v-chart class="burn-results__chart" :option="stackedBarOption" autoresize />
+        <!-- Row 3: Money Burn Over Time and Overall Roast -->
+        <UiCard class="burn-results__card burn-results__card--half">
+          <template #header>💸 Money Burn Over Time</template>
+          <v-chart class="burn-results__chart burn-results__chart--medium" :option="stackedAreaOption" autoresize />
         </UiCard>
 
-        <!-- Original Charts for Comparison -->
-        <UiCard class="burn-results__card">
-          <template #header>Cost by Service (Original)</template>
-          <v-chart class="burn-results__chart" :option="topServicesOption" autoresize />
-        </UiCard>
-
-        <UiCard class="burn-results__card">
-          <template #header>Cost Distribution (Original)</template>
-          <v-chart class="burn-results__chart burn-results__chart--pie" :option="pieChartOption" autoresize />
-        </UiCard>
-
-        <UiCard class="burn-results__card burn-results__card--full">
-          <template #header>Cost Over Time (Original Line)</template>
-          <v-chart class="burn-results__chart" :option="timelineChartOption" autoresize />
+        <UiCard v-if="burnPlan?.roast" class="burn-results__card burn-results__card--half">
+          <template #header>🔥 Overall Roast</template>
+          <div class="overall-roast">
+            <div class="overall-roast__icon">💬</div>
+            <div class="overall-roast__text">{{ displayedRoast }}</div>
+          </div>
         </UiCard>
 
         <!-- Services List -->
@@ -166,14 +171,17 @@ const { info } = useToasts();
 const burnPlan = ref<BurnPlanResponse | null>(null);
 const animationProgress = ref(0);
 const currentRoast = ref('');
+const displayedRoast = ref('');
 const roasts = ref<string[]>([]);
 const roastIndex = ref(0);
 let animationFrame: number | null = null;
 let startTime: number | null = null;
 let roastInterval: number | null = null;
+let typewriterInterval: number | null = null;
 
 const ANIMATION_DURATION = 10000; // 10 seconds
 const ROAST_INTERVAL = 5000; // Show new roast every 5 seconds
+const TYPEWRITER_SPEED = 30; // milliseconds per character
 
 onMounted(() => {
   const stored = sessionStorage.getItem('currentBurnPlan');
@@ -195,6 +203,9 @@ onUnmounted(() => {
   }
   if (roastInterval) {
     clearInterval(roastInterval);
+  }
+  if (typewriterInterval) {
+    clearInterval(typewriterInterval);
   }
 });
 
@@ -239,7 +250,29 @@ const generateRoasts = () => {
   
   if (roasts.value.length > 0 && roasts.value[0]) {
     currentRoast.value = roasts.value[0];
+    startTypewriter(burnPlan.value.roast || '');
   }
+};
+
+const startTypewriter = (text: string) => {
+  if (typewriterInterval) {
+    clearInterval(typewriterInterval);
+  }
+  
+  displayedRoast.value = '';
+  let charIndex = 0;
+  
+  typewriterInterval = window.setInterval(() => {
+    if (charIndex < text.length) {
+      displayedRoast.value += text[charIndex];
+      charIndex++;
+    } else {
+      if (typewriterInterval) {
+        clearInterval(typewriterInterval);
+        typewriterInterval = null;
+      }
+    }
+  }, TYPEWRITER_SPEED);
 };
 
 const startRoastCycle = () => {
@@ -263,37 +296,7 @@ const startRoastCycle = () => {
 
 const chartData = computed(() => {
   if (!burnPlan.value) return null;
-  const fullData = convertToChartData(burnPlan.value);
-  
-  // Use exponential easing for more dramatic growth
-  const exponentialProgress = Math.pow(animationProgress.value, 1.5);
-  
-  // Add variability to timeline data but cap at max values
-  const addVariability = (value: number, index: number, maxValue: number) => {
-    // Add some randomness but keep it consistent per index
-    const seed = index * 0.1;
-    const variance = Math.sin(seed) * 0.1; // ±10% variance (reduced from 15%)
-    const result = value * exponentialProgress * (1 + variance);
-    // Cap at the original value to prevent overflow
-    return Math.min(Math.round(result), Math.round(value));
-  };
-  
-  return {
-    racingBarData: fullData.racingBarData.map((item) => ({
-      ...item,
-      value: Math.min(Math.round(item.value * exponentialProgress), item.value),
-    })),
-    pieChartData: fullData.pieChartData.map((item) => ({
-      ...item,
-      value: Math.min(Math.round(item.value * exponentialProgress), item.value),
-    })),
-    timelineData: {
-      timestamps: fullData.timelineData.timestamps,
-      values: fullData.timelineData.values.map((v, idx) => addVariability(v, idx, v)),
-    },
-    totalCost: Math.min(Math.round(fullData.totalCost * exponentialProgress), fullData.totalCost),
-    timeline: fullData.timeline,
-  };
+  return convertToChartData(burnPlan.value);
 });
 
 const goBack = () => {
@@ -326,7 +329,8 @@ const neonColors = {
 
 const topServicesOption = computed(() => ({
   backgroundColor: 'transparent',
-  animation: false,
+  animationDuration: ANIMATION_DURATION,
+  animationEasing: 'cubicOut' as const,
   grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
   xAxis: {
     type: 'value',
@@ -376,7 +380,8 @@ const topServicesOption = computed(() => ({
 
 const pieChartOption = computed(() => ({
   backgroundColor: 'transparent',
-  animation: false,
+  animationDuration: ANIMATION_DURATION,
+  animationEasing: 'cubicOut' as const,
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(10, 10, 15, 0.9)',
@@ -412,51 +417,56 @@ const pieChartOption = computed(() => ({
   ],
 }));
 
-const timelineChartOption = computed(() => ({
-  backgroundColor: 'transparent',
-  animation: false,
-  grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
-  xAxis: {
-    type: 'category',
-    data: chartData.value?.timelineData.timestamps || [],
-    axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', fontSize: 11 },
-  },
-  yAxis: {
-    type: 'value',
-    max: maxCost.value,
-    axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
-    axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
-    splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
-  },
-  series: [
-    {
-      type: 'line',
-      data: chartData.value?.timelineData.values || [],
-      smooth: true,
-      lineStyle: {
-        color: neonColors.hiviz,
-        width: 3,
-        shadowColor: neonColors.hiviz,
-        shadowBlur: 15,
-      },
-      areaStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: 'rgba(192, 255, 0, 0.5)' },
-            { offset: 1, color: 'rgba(192, 255, 0, 0)' },
-          ],
-        },
-      },
-      symbol: 'none',
+const timelineChartOption = computed(() => {
+  if (!chartData.value) return {};
+  
+  return {
+    backgroundColor: 'transparent',
+    animationDuration: ANIMATION_DURATION,
+    animationEasing: 'linear' as const,
+    grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
+    xAxis: {
+      type: 'category',
+      data: chartData.value.timelineData.timestamps,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', fontSize: 11 },
     },
-  ],
-}));
+    yAxis: {
+      type: 'value',
+      max: maxCost.value,
+      axisLine: { lineStyle: { color: neonColors.hiviz, width: 2 } },
+      axisLabel: { color: '#fff', formatter: '${value}', fontSize: 11 },
+      splitLine: { lineStyle: { color: 'rgba(192, 255, 0, 0.1)' } },
+    },
+    series: [
+      {
+        type: 'line',
+        data: chartData.value.timelineData.values,
+        smooth: true,
+        lineStyle: {
+          color: neonColors.hiviz,
+          width: 3,
+          shadowColor: neonColors.hiviz,
+          shadowBlur: 15,
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(192, 255, 0, 0.5)' },
+              { offset: 1, color: 'rgba(192, 255, 0, 0)' },
+            ],
+          },
+        },
+        symbol: 'none',
+      },
+    ],
+  };
+});
 
 // Stacked Area Chart - Shows service contributions over time
 const stackedAreaOption = computed(() => {
@@ -467,7 +477,8 @@ const stackedAreaOption = computed(() => {
   
   return {
     backgroundColor: 'transparent',
-    animation: false,
+    animationDuration: ANIMATION_DURATION,
+    animationEasing: 'linear' as const,
     grid: { left: '10%', right: '10%', top: '15%', bottom: '15%' },
     tooltip: {
       trigger: 'axis',
@@ -529,7 +540,8 @@ const gaugeOption = computed(() => {
   
   return {
     backgroundColor: 'transparent',
-    animation: false,
+    animationDuration: ANIMATION_DURATION,
+    animationEasing: 'cubicOut' as const,
     series: [
       {
         type: 'gauge',
@@ -577,14 +589,14 @@ const gaugeOption = computed(() => {
           fontSize: 12,
         },
         detail: {
-          valueAnimation: false,
+          valueAnimation: true,
           formatter: '{value}%',
           color: neonColors.hiviz,
           fontSize: 32,
           fontWeight: 'bold',
           offsetCenter: [0, '70%'],
         },
-        data: [{ value: progress, name: 'Burn Progress' }],
+        data: [{ value: 100, name: 'Burn Progress' }],
       },
     ],
   };
@@ -598,7 +610,8 @@ const racingBarOption = computed(() => {
   
   return {
     backgroundColor: 'transparent',
-    animation: false,
+    animationDuration: ANIMATION_DURATION,
+    animationEasing: 'cubicOut' as const,
     grid: { left: '25%', right: '15%', top: '5%', bottom: '5%' },
     xAxis: {
       type: 'value',
@@ -657,7 +670,8 @@ const stackedBarOption = computed(() => {
   
   return {
     backgroundColor: 'transparent',
-    animation: false,
+    animationDuration: ANIMATION_DURATION,
+    animationEasing: 'cubicOut',
     grid: { left: '10%', right: '10%', top: '15%', bottom: '15%' },
     tooltip: {
       trigger: 'axis',
@@ -699,13 +713,14 @@ const stackedBarOption = computed(() => {
       },
       data: Array.from({ length: days }, (_, day) => {
         if (day >= service.start_day && day <= service.end_day) {
-          return Math.round((service.total_cost / (service.end_day - service.start_day)) * animationProgress.value);
+          return Math.round(service.total_cost / (service.end_day - service.start_day));
         }
         return 0;
       }),
     })),
   };
 });
+
 </script>
 
 <style scoped>
@@ -720,6 +735,12 @@ const stackedBarOption = computed(() => {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.burn-results__header-actions {
+  display: flex;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
@@ -742,15 +763,81 @@ const stackedBarOption = computed(() => {
   color: var(--color-text-muted);
 }
 
-.burn-results__roast-card {
+.burn-results__progress {
   margin-bottom: var(--space-lg);
+}
+
+.progress-meter {
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 0 20px rgba(192, 255, 0, 0.2);
+}
+
+.progress-meter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.progress-meter__label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.progress-meter__percentage {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.progress-meter__bar {
+  height: 24px;
+  background: var(--color-surface-soft);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-meter__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #d4ff4d);
+  border-radius: var(--border-radius-md);
+  transition: width 0.1s linear;
+  box-shadow: 0 0 15px rgba(192, 255, 0, 0.5);
+  position: relative;
+}
+
+.progress-meter__fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+  animation: shimmer 1s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .overall-roast {
   display: flex;
   gap: var(--space-md);
-  align-items: flex-start;
-  padding: var(--space-lg);
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-xl);
   background: linear-gradient(135deg, rgba(192, 255, 0, 0.1), rgba(255, 0, 110, 0.1));
   border-radius: var(--border-radius-md);
   border-left: 4px solid var(--color-primary);
@@ -824,7 +911,7 @@ const stackedBarOption = computed(() => {
 
 .burn-results__content {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: var(--space-lg);
 }
 
@@ -832,17 +919,25 @@ const stackedBarOption = computed(() => {
   grid-column: 1 / -1;
 }
 
+.burn-results__card--half {
+  grid-column: span 3;
+}
+
+.burn-results__card--third {
+  grid-column: span 2;
+}
+
 .burn-results__chart {
   height: 300px;
   width: 100%;
 }
 
-.burn-results__chart--pie {
-  height: 350px;
+.burn-results__chart--medium {
+  height: 280px;
 }
 
-.burn-results__chart--gauge {
-  height: 300px;
+.burn-results__chart--compact {
+  height: 240px;
 }
 
 .services-list {
@@ -924,9 +1019,40 @@ const stackedBarOption = computed(() => {
   margin-right: var(--space-xs);
 }
 
+@media (max-width: 1400px) {
+  .burn-results__content {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .burn-results__card--third {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 1024px) {
   .burn-results__content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .burn-results__card--half,
+  .burn-results__card--third {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .burn-results__content {
     grid-template-columns: 1fr;
+  }
+  
+  .burn-results__card--full,
+  .burn-results__card--half,
+  .burn-results__card--third {
+    grid-column: 1 / -1;
+  }
+  
+  .burn-results__chart--compact {
+    height: 280px;
   }
 }
 </style>
