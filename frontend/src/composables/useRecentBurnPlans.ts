@@ -23,7 +23,7 @@ export function useRecentBurnPlans() {
     error.value = null;
 
     try {
-      const response = await apiClient.get<RecentBurnPlan[]>(`/burn-plan/recent?limit=${limit}`);
+      const response = await apiClient.get<RecentBurnPlan[]>(`/api/burn-plan/recent?limit=${limit}`);
       recentPlans.value = response;
     } catch (err: any) {
       console.error('Failed to fetch recent burn plans:', err);
