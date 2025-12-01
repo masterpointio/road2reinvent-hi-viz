@@ -32,10 +32,17 @@ class DynamoDBService:
         timestamp = int(time.time() * 1000)  # milliseconds
 
         # Convert BurnPlan to dict and handle float to Decimal conversion
+        burn_plan_dict = burn_plan.model_dump()
+        
+        # Log if pdf_invoice is present
+        print(f"Storing burn plan with pdf_invoice: {burn_plan_dict.get('pdf_invoice') is not None}")
+        if burn_plan_dict.get('pdf_invoice'):
+            print(f"PDF invoice in storage: {burn_plan_dict['pdf_invoice']}")
+        
         item = {
             "id": session_id,
             "timestamp": timestamp,
-            "burn_plan": self._convert_floats_to_decimals(burn_plan.model_dump())
+            "burn_plan": self._convert_floats_to_decimals(burn_plan_dict)
         }
 
         self.table.put_item(Item=item)
