@@ -330,7 +330,7 @@ const neonColors = {
 const topServicesOption = computed(() => ({
   backgroundColor: 'transparent',
   animationDuration: ANIMATION_DURATION,
-  animationEasing: 'cubicOut',
+  animationEasing: 'cubicOut' as const,
   grid: { left: '30%', right: '10%', top: '5%', bottom: '5%' },
   xAxis: {
     type: 'value',
@@ -381,7 +381,7 @@ const topServicesOption = computed(() => ({
 const pieChartOption = computed(() => ({
   backgroundColor: 'transparent',
   animationDuration: ANIMATION_DURATION,
-  animationEasing: 'cubicOut',
+  animationEasing: 'cubicOut' as const,
   tooltip: {
     trigger: 'item',
     backgroundColor: 'rgba(10, 10, 15, 0.9)',
@@ -423,7 +423,7 @@ const timelineChartOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     animationDuration: ANIMATION_DURATION,
-    animationEasing: 'linear',
+    animationEasing: 'linear' as const,
     grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
     xAxis: {
       type: 'category',
@@ -478,7 +478,7 @@ const stackedAreaOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     animationDuration: ANIMATION_DURATION,
-    animationEasing: 'linear',
+    animationEasing: 'linear' as const,
     grid: { left: '10%', right: '10%', top: '15%', bottom: '15%' },
     tooltip: {
       trigger: 'axis',
@@ -541,7 +541,7 @@ const gaugeOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     animationDuration: ANIMATION_DURATION,
-    animationEasing: 'cubicOut',
+    animationEasing: 'cubicOut' as const,
     series: [
       {
         type: 'gauge',
@@ -611,7 +611,7 @@ const racingBarOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     animationDuration: ANIMATION_DURATION,
-    animationEasing: 'cubicOut',
+    animationEasing: 'cubicOut' as const,
     grid: { left: '25%', right: '15%', top: '5%', bottom: '5%' },
     xAxis: {
       type: 'value',

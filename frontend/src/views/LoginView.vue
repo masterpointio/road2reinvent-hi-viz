@@ -8,10 +8,9 @@
       </div>
 
       <div class="login-card__content">
-        <!-- TODO: Replace with actual Cognito auth when ready -->
-        <div class="demo-notice">
-          <p>🚧 Auth integration pending</p>
-          <p class="demo-notice__text">Click below to continue to demo</p>
+        <div v-if="!hasCognitoConfig" class="demo-notice">
+          <p>⚠️ Cognito not configured</p>
+          <p class="demo-notice__text">Set VITE_COGNITO_DOMAIN and VITE_COGNITO_CLIENT_ID</p>
         </div>
 
         <UiButton variant="primary" size="large" @click="handleLogin" class="login-button">
@@ -27,33 +26,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuth } from '../composables/useAuth';
+import { ref, onMounted } from 'vue';
+import { config } from '../config';
 import BillBurnerLogo from '../components/BillBurnerLogo.vue';
 import UiButton from '../components/UiButton.vue';
 
-const router = useRouter();
-const { login } = useAuth();
 const isLoading = ref(false);
+const hasCognitoConfig = ref(false);
 
-const handleLogin = async () => {
+onMounted(() => {
+  hasCognitoConfig.value = !!(config.cognitoLoginUrl || config.cognitoDomain);
+});
+
+const handleLogin = () => {
   isLoading.value = true;
-  try {
-    // TODO: Replace with actual Cognito login
-    // For now, just set demo auth state
-    await login({ email: 'demo@billburner.com', token: 'demo-token' });
-    router.push('/app');
-  } catch (error) {
-    console.error('Login failed:', error);
-  } finally {
+  
+  if (config.cognitoLoginUrl) {
+    // Redirect to Cognito hosted UI
+    window.location.href = config.cognitoLoginUrl;
+  } else {
+    console.error('Cognito login URL not configured');
     isLoading.value = false;
   }
 };
 
 const handleSignUp = () => {
-  // TODO: Implement sign up flow
-  console.log('Sign up clicked');
+  // Redirect to Cognito sign up page
+  if (config.cognitoDomain && config.cognitoClientId) {
+    const redirectUri = `${window.location.origin}/login-callback`;
+    const signUpUrl = `https://${config.cognitoDomain}/signup?client_id=${config.cognitoClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = signUpUrl;
+  }
 };
 </script>
 

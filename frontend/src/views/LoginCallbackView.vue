@@ -28,7 +28,7 @@ const isProcessing = ref(true);
 const error = ref('');
 
 const retryLogin = () => {
-  login();
+  router.push('/login');
 };
 
 onMounted(async () => {
@@ -36,7 +36,7 @@ onMounted(async () => {
     await handleCallback();
     message.value = 'Login successful! Redirecting...';
     setTimeout(() => {
-      router.push('/app/dashboard');
+      router.push('/app');
     }, 500);
   } catch (err) {
     isProcessing.value = false;

@@ -121,16 +121,18 @@ export const useBurnPlan = () => {
       return burnPlan;
     } catch (err: unknown) {
       // Provide more helpful error messages
-      if (err.status === 401 || err.status === 403) {
+      const apiError = err as { status?: number; message?: string };
+      
+      if (apiError.status === 401 || apiError.status === 403) {
         error.value = 'Authentication failed. Please log in again.';
-      } else if (err.status === 504) {
+      } else if (apiError.status === 504) {
         error.value = 'Request timed out. The agent is taking too long to respond.';
-      } else if (err.status === 429) {
+      } else if (apiError.status === 429) {
         error.value = 'Rate limit exceeded. Please try again later.';
-      } else if (err.status === 502 || err.status === 503) {
+      } else if (apiError.status === 502 || apiError.status === 503) {
         error.value = 'Service temporarily unavailable. Please try again.';
       } else {
-        error.value = err.message || 'Failed to create burn plan';
+        error.value = apiError.message || 'Failed to create burn plan';
       }
       console.error('Burn plan creation error:', err);
       return null;

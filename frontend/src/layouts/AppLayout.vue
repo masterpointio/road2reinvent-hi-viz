@@ -32,6 +32,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTheme, type Theme } from '../composables/useTheme';
 import { useAuth } from '../composables/useAuth';
+import { getCognitoLogoutUrl } from '../config';
 import UiToastContainer from '../components/UiToastContainer.vue';
 import BillBurnerLogo from '../components/BillBurnerLogo.vue';
 
@@ -66,9 +67,12 @@ const selectTheme = (theme: string) => {
 };
 
 const handleLogout = async () => {
-  await logout();
+  logout();
   showUserMenu.value = false;
-  router.push('/login');
+  
+  // Redirect to Cognito logout URL which will then redirect back to /login
+  const logoutUrl = getCognitoLogoutUrl();
+  window.location.href = logoutUrl;
 };
 
 const handleClickOutside = (event: MouseEvent) => {
